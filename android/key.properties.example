@@ -1,0 +1,6 @@
+# 复制成 android/key.properties（不要提交到 git）
+# 密钥文件在 D:\\VN-Studio-0.1.0-x64\\signing\\
+storeFile=../../signing/singyoursong-upload.jks
+storePassword=REPLACE_WITH_PASSWORD
+keyAlias=singyoursong
+keyPassword=REPLACE_WITH_PASSWORD

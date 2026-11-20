@@ -5,6 +5,7 @@ const CACHE = 'hum2song-shell-v3';
 const ASSETS = [
   './index.html',
   './manifest.webmanifest',
+  './privacy.html',
   './vendor/Tone.js',
   './icons/icon-192.png',
   './icons/icon-512.png',

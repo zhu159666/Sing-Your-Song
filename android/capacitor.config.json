@@ -1,0 +1,13 @@
+{
+  "appId": "com.zhu159666.singyoursong",
+  "appName": "Sing Your Song",
+  "webDir": "..",
+  "bundledWebRuntime": false,
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}
