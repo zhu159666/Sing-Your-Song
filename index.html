@@ -92,8 +92,9 @@
   @keyframes play-pulse { 0% { opacity: .85; transform: scale(1); } 100% { opacity: 0; transform: scale(1.14); } }
 
   /* 混音条与和弦标签入场 */
-  .mix-strip { animation: strip-in .32s var(--ease) both; }
-  @keyframes strip-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  /* 只动透明度：带 transform 的关键帧会锁死 JS 写的 3D 倾斜 */
+  .mix-strip { animation: strip-in .32s var(--ease); }
+  @keyframes strip-in { from { opacity: 0; } to { opacity: 1; } }
   .tl-chord { animation: chip-in .3s var(--ease) both; }
   @keyframes chip-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 
@@ -635,7 +636,7 @@
         <div class="tl-scroll">
           <div id="timeline" class="tl"></div>
         </div>
-        <div id="velRow" class="vel-row" hidden>
+        <div id="velRow" class="vel-row">
           <label>力度 <input type="range" id="velocity" min="5" max="100" step="1" value="60" /></label>
           <span class="sub" id="velInfo"></span>
           <button id="btnDelSel" class="mini ghost">删除选区</button>
@@ -2669,18 +2670,21 @@ function refreshVelocityRow() {
   const row = $('velRow');
   if (!row) return;
   const acts = ['btnDelSel', 'btnTransDown', 'btnTransUp'];
+  const slider = $('velocity');
+  const info = $('velInfo');
+
   if (!selection || !selection.notes.length) {
-    row.hidden = true;
     acts.forEach((id) => { const b = $(id); if (b) b.hidden = true; });
+    if (slider) slider.disabled = true;
+    if (info) info.textContent = '按住 Shift（手机上先用「选择」）框选一段旋律';
     return;
   }
-  row.hidden = false;
+
   acts.forEach((id) => { const b = $(id); if (b) b.hidden = false; });
+  if (slider) slider.disabled = false;
 
   const avg = selection.notes.reduce((sum, n) => sum + (n.amp == null ? 0.6 : n.amp), 0) / selection.notes.length;
-  const slider = $('velocity');
   if (slider) slider.value = String(Math.round(avg * 100));
-  const info = $('velInfo');
   if (info) info.textContent = selection.notes.length + ' 个音符 · 平均力度 ' + Math.round(avg * 100);
 }
 
@@ -3517,7 +3521,7 @@ function renderMixer() {
 
     strip.append(name, faderWrap, panRow, eqBox, revRow, btns);
     strip.style.animationDelay = (root.childNodes.length * 40) + 'ms';
-    attachTilt(strip, 9);
+    attachTilt(strip, 14);
     root.appendChild(strip);
   }
 }
@@ -4236,15 +4240,19 @@ function showView(name) {
     });
   }
 
-  // 切页动效：整页淡入上浮，内部区块依次错开
+  // 整页 3D 转场：像一页纸从右侧转进来
   if (active) {
-    animateEl(active, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }],
-      { duration: 240, easing: 'cubic-bezier(.2,.9,.3,1)' });
+    animateEl(active, [
+      { opacity: 0, transform: 'perspective(1400px) rotateY(-14deg) translateZ(-90px)' },
+      { opacity: 1, transform: 'perspective(1400px) rotateY(0deg) translateZ(0px)' },
+    ], { duration: 480, easing: 'cubic-bezier(.2,.8,.3,1)' });
 
     if (active.querySelectorAll) {
       active.querySelectorAll('.panel').forEach((panel, i) => {
-        animateEl(panel, [{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'none' }],
-          { duration: 320, delay: 45 * i, easing: 'cubic-bezier(.2,.9,.3,1)', fill: 'backwards' });
+        animateEl(panel, [
+          { opacity: 0, transform: 'translateZ(-40px) translateY(10px)' },
+          { opacity: 1, transform: 'translateZ(0) translateY(0)' },
+        ], { duration: 380, delay: 60 + 50 * i, easing: 'cubic-bezier(.2,.8,.3,1)', fill: 'backwards' });
       });
     }
   }
@@ -4299,7 +4307,7 @@ function makeTimbreSelect(track) {
 function makeTimbreCard(key, cfg, isUser) {
   const card = document.createElement('div');
   card.className = 'timbre-card';
-  attachTilt(card, 7);
+  attachTilt(card, 10);
 
   const head = document.createElement('div');
   head.className = 'timbre-head';
