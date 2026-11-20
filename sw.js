@@ -1,6 +1,7 @@
-// 离线壳：只缓存"应用本身"，不碰 CDN 和模型（那些按浏览器常规缓存走）。
-// 这样断网时页面还能打开、还能编辑和播放（Tone.js 已在 vendor/ 里）。
-const CACHE = 'hum2song-shell-v1';
+// 离线壳。策略：导航请求（打开页面）永远先要网络，拿不到才回缓存——
+// 这样部署新版本后刷新就能看到新版，不会被旧缓存卡住。
+// 其他同源静态资源（Tone.js、采样）走缓存优先，保证离线可用。
+const CACHE = 'hum2song-shell-v3';
 const ASSETS = [
   './index.html',
   './manifest.webmanifest',
@@ -26,6 +27,10 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+self.addEventListener('message', (event) => {
+  if (event.data === 'skip-waiting') self.skipWaiting();
+});
+
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;
@@ -33,17 +38,31 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;   // 跨域（CDN / 模型）交给浏览器
 
+  // 打开页面：网络优先，失败才用缓存
+  if (request.mode === 'navigate' || url.pathname.endsWith('/index.html')) {
+    event.respondWith(
+      fetch(request)
+        .then((res) => {
+          const copy = res.clone();
+          caches.open(CACHE).then((cache) => cache.put(request, copy)).catch(() => {});
+          return res;
+        })
+        .catch(() => caches.match(request).then((hit) => hit || caches.match('./index.html')))
+    );
+    return;
+  }
+
+  // 静态资源：缓存优先
   event.respondWith(
     caches.match(request).then((hit) => {
       if (hit) return hit;
       return fetch(request).then((res) => {
-        // 只缓存成功的同源响应
         if (res && res.status === 200 && res.type === 'basic') {
           const copy = res.clone();
           caches.open(CACHE).then((cache) => cache.put(request, copy)).catch(() => {});
         }
         return res;
-      }).catch(() => caches.match('./index.html'));
+      });
     })
   );
 });

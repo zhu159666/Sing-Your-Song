@@ -680,6 +680,7 @@
             <button id="btnSnap" class="mini ghost" disabled title="把跑调的音吸附到检测出的音阶上">吸附到调</button>
             <button id="btnClear" class="mini ghost">清空本轨</button>
             <button id="btnClearDrums" class="mini ghost">清空鼓点</button>
+            <button id="btnNewProject" class="mini ghost" title="丢弃当前工程，从一条空白轨道重新开始">新建工程</button>
           </div>
         </div>
         <div id="rotateHint" class="rotate-hint" hidden>
@@ -766,6 +767,12 @@
 
     <!-- ================= 视图 3：问题说明 ================= -->
     <div id="view-help" class="view" hidden>
+      <section class="panel">
+        <div class="panel-head"><h2 class="panel-title">版本 <span class="sub" id="appVersion"></span></h2></div>
+        <p class="hint">打开页面时如果还是旧界面，说明浏览器缓存了旧文件：
+          按 Ctrl+Shift+R 强制刷新，或在开发者工具的 Application → Service Workers 里点 Unregister 再刷新。</p>
+      </section>
+
       <section class="panel">
         <div class="panel-head"><h2 class="panel-title">快捷键 <span class="sub">先记这几个，效率翻倍</span></h2></div>
         <ul class="help-list">
@@ -1560,6 +1567,7 @@ let suppressClickUntil = 0;   // 拖动结束后短暂忽略 click，避免误�
 let selectMode = false;       // 触屏友好：开启后拖拽 = 框选，点格子不再加音符
 let hitTargets = [];          // [{ start, el }]，播放头扫过时用来弹一下
 let notationMode = 'roll';    // roll | staff | jianpu
+const APP_VERSION = '2026.11.20.38';   // 每次发布改这里，页面底部能看到
 let lastPlayheadSec = 0;
 let playheadSec = 0;          // 播放头位置（秒）
 let playheadRAF = 0;
@@ -1706,6 +1714,25 @@ function loadProject() {
     updateHistoryButtons();
     return true;
   } catch (err) { return false; }
+}
+
+/** 新建空白工程：清掉自动保存，回到一条钢琴轨 */
+function newProject() {
+  const ok = window.confirm('新建工程会清空当前工程（可先导出 JSON 备份），确定吗？');
+  if (!ok) return;
+  const prev = snapshot();
+  tracks = [];
+  chordTrack = [];
+  initTracks();                      // 回到一条空白钢琴轨 + 空鼓点
+  playheadSec = 0;
+  try { localStorage.removeItem(PROJECT_KEY); } catch (err) { /* 忽略 */ }
+  renderTimeline();
+  renderMixer();
+  renderTrackList();
+  renderJson();
+  updatePlayButton();
+  commit(prev);
+  setStatus('已新建空白工程');
 }
 
 async function downloadProject() {
@@ -4397,6 +4424,7 @@ function transposeSelection(semitones) {
 
 $('btnTransUp').addEventListener('click', () => transposeSelection(12));
 $('btnTransDown').addEventListener('click', () => transposeSelection(-12));
+$('btnNewProject').addEventListener('click', newProject);
 $('btnZoomIn').addEventListener('click', () => setZoom(zoomLevel + 0.25));
 $('btnZoomOut').addEventListener('click', () => setZoom(zoomLevel - 0.25));
 $('notation').addEventListener('change', (event) => {
@@ -4862,7 +4890,14 @@ try {
   }
 } catch (err) { /* 忽略 */ }
 
+const versionEl = $('appVersion');
+if (versionEl) versionEl.textContent = '构建 ' + APP_VERSION;
+
 const restored = loadProject();
+if (restored) {
+  const count = tracks.reduce((sum, t) => sum + t.notes.length, 0);
+  setStatus('已恢复上次的编辑（' + count + ' 个音符）· 想从空白开始点「新建工程」');
+}
 renderMixer();
 restoreFromHash().catch(() => {});
 $('timeline').style.setProperty('--head-w', TL.headW + 'px');
@@ -5177,8 +5212,32 @@ if (document.querySelectorAll) {
 // PWA：注册离线壳。file:// 下浏览器不给注册，直接跳过。
 if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js").catch((err) => {
-      console.warn("Service Worker 注册失败：", err);
+    navigator.serviceWorker.register("sw.js")
+      .then((registration) => {
+        // 每次打开都主动问一句"有没有新版"
+        registration.update().catch(() => {});
+
+        registration.addEventListener("updatefound", () => {
+          const next = registration.installing;
+          if (!next) return;
+          next.addEventListener("statechange", () => {
+            if (next.state === "installed" && navigator.serviceWorker.controller) {
+              setStatus("发现新版本，正在切换…");
+              next.postMessage("skip-waiting");
+            }
+          });
+        });
+      })
+      .catch((err) => {
+        console.warn("Service Worker 注册失败：", err);
+      });
+
+    // 新 SW 接管后自动刷新一次（每个会话只刷一次，避免循环）
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (reloaded) return;
+      reloaded = true;
+      location.reload();
     });
   });
 }
