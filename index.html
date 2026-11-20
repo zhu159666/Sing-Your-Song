@@ -31,6 +31,42 @@
   /* hidden 属性要压过 button/div 的 display（否则没选区时按钮还是显示） */
   [hidden] { display: none !important; }
 
+  /* ---- 3D ---- */
+  /* 卡片/通道条：指针移动时朝指针方向倾斜，内部元素分层浮起 */
+  .mix-strip, .timbre-card {
+    transform-style: preserve-3d;
+    transition: transform .28s var(--ease), box-shadow .28s var(--ease);
+    will-change: transform;
+  }
+  .mix-strip:hover, .timbre-card:hover {
+    box-shadow: 0 26px 50px -30px rgba(0,0,0,.95), 0 0 0 1px var(--line-strong);
+  }
+  .mix-strip .mix-name { transform: translateZ(18px); }
+  .mix-strip .mix-fader { transform: translateZ(10px); }
+  .mix-strip .mix-btns { transform: translateZ(26px); }
+
+  /* 音符块：本体抬升，悬停再往前倾一点 */
+  .tl-block {
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.28), 0 4px 12px -8px rgba(0,0,0,.95);
+    transition: filter .14s var(--ease), box-shadow .16s var(--ease), transform .16s var(--ease);
+  }
+  .tl-block:hover {
+    transform: translate3d(0, -2px, 0) rotateX(9deg) scale(1.02);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 14px 26px -14px rgba(0,0,0,1);
+  }
+
+  /* 主按钮：有厚度，按下去真的下沉 */
+  .primary { box-shadow: 0 5px 0 -2px rgba(0,0,0,.38), 0 12px 26px -16px rgba(0,0,0,.95); }
+  .primary:hover:not(:disabled) { transform: translateY(-1px); }
+  .primary:active:not(:disabled) {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 -2px rgba(0,0,0,.38), 0 4px 10px -8px rgba(0,0,0,.9);
+  }
+
+  /* 第二层星空反向位移，和 #sky 形成真视差 */
+  #stars { transform: translate3d(calc(var(--px, 0) * 5px), calc(var(--py, 0) * 5px), 0);
+           transition: transform .6s cubic-bezier(.2,.8,.3,1); }
+
   /* ---- 动效 ---- */
   /* 星空随鼠标轻微偏移，做出纵深感 */
   #sky { transform: translate3d(calc(var(--px, 0) * -7px), calc(var(--py, 0) * -7px), 0) scale(1.02);
@@ -3481,6 +3517,7 @@ function renderMixer() {
 
     strip.append(name, faderWrap, panRow, eqBox, revRow, btns);
     strip.style.animationDelay = (root.childNodes.length * 40) + 'ms';
+    attachTilt(strip, 9);
     root.appendChild(strip);
   }
 }
@@ -4262,6 +4299,7 @@ function makeTimbreSelect(track) {
 function makeTimbreCard(key, cfg, isUser) {
   const card = document.createElement('div');
   card.className = 'timbre-card';
+  attachTilt(card, 7);
 
   const head = document.createElement('div');
   head.className = 'timbre-head';
@@ -4760,6 +4798,34 @@ if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) {
     setTimeout(() => ripple.remove(), 620);
   }, { passive: true });
 })();
+
+/** 指针追踪的 3D 倾斜：鼠标在卡片上移动时朝指针方向转 */
+function attachTilt(el, maxDeg) {
+  if (!el || REDUCE_MOTION || typeof el.addEventListener !== 'function') return;
+
+  let raf = 0;
+  let nx = 0, ny = 0;
+
+  el.addEventListener('pointermove', (event) => {
+    const rect = el.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    nx = (event.clientX - rect.left) / rect.width - 0.5;
+    ny = (event.clientY - rect.top) / rect.height - 0.5;
+    if (raf) return;
+    raf = requestAnimationFrame(() => {
+      raf = 0;
+      const rx = (-ny * maxDeg).toFixed(2);
+      const ry = (nx * maxDeg).toFixed(2);
+      el.style.transform =
+        'perspective(700px) rotateX(' + rx + 'deg) rotateY(' + ry + 'deg) translateZ(8px)';
+    });
+  });
+
+  el.addEventListener('pointerleave', () => {
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+    el.style.transform = '';
+  });
+}
 
 // 环境自检：一眼看出为什么可能录不了音
 if (!window.isSecureContext) {
