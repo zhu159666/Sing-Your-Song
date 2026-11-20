@@ -782,8 +782,8 @@
         </ul>
       </section>
 
-      <p id="disclaimer" class="disclaimer">本工具使用开源合成器（MIT 协议）与 1 组 CC-BY 3.0 钢琴采样（Salamander Grand Piano · Alexander Holm），
-其余音色全部实时合成、不含采样版权。用户基于自身哼唱生成的音乐，版权归用户所有，可自由用于商业用途。</p>
+      <p id="disclaimer" class="disclaimer">本工具使用开源合成器（MIT 协议）、CC-BY 3.0 钢琴采样（Salamander Grand Piano · Alexander Holm）
+与 CC0 尤克里里采样（FreePats）。其余音色实时合成、不含采样版权。用户基于自身哼唱生成的音乐，版权归用户所有，可自由用于商业用途。</p>
     </div>
 
   </div>
@@ -1478,6 +1478,8 @@ let redoStack = [];
 let saveTimer = 0;
 let suppressClickUntil = 0;   // 拖动结束后短暂忽略 click，避免误删
 let selectMode = false;       // 触屏友好：开启后拖拽 = 框选，点格子不再加音符
+let hitTargets = [];          // [{ start, el }]，播放头扫过时用来弹一下
+let lastPlayheadSec = 0;
 let playheadSec = 0;          // 播放头位置（秒）
 let playheadRAF = 0;
 let clickLoop = null;
@@ -2331,6 +2333,7 @@ function drawTimeline() {
   const width = cols * TL.cellW;
 
   root.innerHTML = '';
+  hitTargets = [];
 
   // 刻度行（和下面的轨道行用同一套 flex 结构，轨头与泳道天然对齐）
   const rulerRow = document.createElement('div');
@@ -2536,6 +2539,7 @@ function drawTimeline() {
         block.style.height = Math.max(6, rowH - 2) + 'px';
         block.style.top = (barH + (span.hi - Math.round(note.midi)) * rowH + 1) + 'px';
         lane.appendChild(block);
+        hitTargets.push({ start: note.start, el: block });
 
         // 拖动 = 移动（或选中一组一起移动）；拖右缘 6px = 改长度
         block.addEventListener('pointerdown', (event) => {
@@ -2583,6 +2587,7 @@ function drawTimeline() {
       mark.className = 'tl-hit';
       mark.style.left = ((hit.start / step) * TL.cellW + TL.cellW / 2 - 6) + 'px';
       mark.style.background = def.color;
+      hitTargets.push({ start: hit.start, el: mark });
       lane.appendChild(mark);
     }
 
@@ -2782,11 +2787,32 @@ function seekTo(sec) {
   setStatus('定位到 ' + playheadSec.toFixed(2) + ' 秒');
 }
 
+/** 音符被播放头扫过时轻轻弹一下（循环回到开头会重置判定） */
+function bounceSweptNotes(from, to) {
+  if (!hitTargets.length || REDUCE_MOTION) return;
+  const wrapped = to < from;
+  for (const target of hitTargets) {
+    const hit = wrapped
+      ? (target.start > from || target.start <= to)   // 跨过循环点
+      : (target.start > from && target.start <= to);
+    if (!hit) continue;
+    try {
+      target.el.animate([
+        { transform: 'translateY(0) scale(1)' },
+        { transform: 'translateY(-5px) scale(1.08)', offset: 0.35 },
+        { transform: 'translateY(0) scale(1)' },
+      ], { duration: 280, easing: 'cubic-bezier(.2,.8,.3,1)' });
+    } catch (err) { /* 忽略 */ }
+  }
+}
+
 function tickPlayhead() {
   if (!isPlaying) { playheadRAF = 0; return; }
   const T = window.Tone;
   if (T) {
+    const previous = playheadSec;
     try { playheadSec = transport().seconds; } catch (err) { /* 忽略 */ }
+    if (playheadSec !== previous) bounceSweptNotes(previous, playheadSec);
     drawPlayhead();
   }
   playheadRAF = requestAnimationFrame(tickPlayhead);
@@ -3023,6 +3049,18 @@ const SAMPLE_TIMBRES = {
       C4: 'C4.mp3', 'D#4': 'Ds4.mp3', 'F#4': 'Fs4.mp3', A4: 'A4.mp3',
       C5: 'C5.mp3', 'D#5': 'Ds5.mp3', 'F#5': 'Fs5.mp3', A5: 'A5.mp3',
       C6: 'C6.mp3', 'D#6': 'Ds6.mp3', 'F#6': 'Fs6.mp3', A6: 'A6.mp3', C7: 'C7.mp3',
+    },
+  },
+  ukulele_sampled: {
+    label: '尤克里里·采样',
+    kind: 'sampler',
+    baseUrl: 'samples/ukulele/',
+    release: 0.9,
+    credit: 'FreePats Ukulele 1（CC0 1.0，公有领域）',
+    urls: {
+      C4: 'C4.mp3', D4: 'D4.mp3', E4: 'E4.mp3', 'F#4': 'Fs4.mp3', G4: 'G4.mp3',
+      A4: 'A4.mp3', B4: 'B4.mp3', 'C#5': 'Cs5.mp3', 'D#5': 'Ds5.mp3',
+      F5: 'F5.mp3', G5: 'G5.mp3', A5: 'A5.mp3', C6: 'C6.mp3',
     },
   },
 };
@@ -3406,6 +3444,7 @@ function renderMixer() {
   const root = $('mixer');
   if (!root) return;
   root.innerHTML = '';
+  hitTargets = [];
 
   const sources = tracks.map((t) => ({
     id: t.id, name: t.name, hue: trackHue(t), kind: 'track',
@@ -3612,6 +3651,7 @@ async function startPlayback() {
   tr.seconds = playheadSec;
   tr.start();
   isPlaying = true;
+  playheadSec = playheadSec || 0;
   document.body.classList.add('is-playing');
   startMetronome(Tone);
   startPlayheadLoop();
