@@ -6,6 +6,7 @@ const ASSETS = [
   './index.html',
   './manifest.webmanifest',
   './privacy.html',
+  './privacy.zh.html',
   './vendor/Tone.js',
   './icons/icon-192.png',
   './icons/icon-512.png',

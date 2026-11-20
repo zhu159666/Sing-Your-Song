@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>隐私政策 · Sing Your Song</title>
+<title>Privacy Policy · Sing Your Song</title>
 <style>
   :root {
     --bg: #0a0e14; --panel: #11161f; --line: rgba(255,255,255,.09);
@@ -12,7 +12,7 @@
   * { box-sizing: border-box; }
   body {
     margin: 0; padding: 48px 20px 80px; background: var(--bg); color: var(--text);
-    font: 15px/1.75 -apple-system, "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+    font: 15px/1.75 -apple-system, "Segoe UI", system-ui, sans-serif;
   }
   main { max-width: 720px; margin: 0 auto; }
   h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: -.01em; }
@@ -28,60 +28,63 @@
   a { color: var(--accent); }
   .back { display: inline-block; margin-bottom: 26px; color: var(--muted); text-decoration: none; font-size: 13px; }
   .back:hover { color: var(--text); }
+  .lang { float: right; font-size: 13px; color: var(--muted); text-decoration: none; }
+  .lang:hover { color: var(--text); }
 </style>
 </head>
 <body>
 <main>
-  <a class="back" href="./index.html">← 返回应用</a>
-  <h1>隐私政策</h1>
-  <div class="sub">Sing Your Song · 哼唱编曲工作台 · 最后更新：2026-11-20</div>
+  <a class="back" href="./index.html">← Back to app</a>
+  <a class="lang" href="./privacy.zh.html">中文</a>
+  <h1>Privacy Policy</h1>
+  <div class="sub">Sing Your Song · Hum Arranger · Last updated: 2026-11-21</div>
 
   <div class="box">
-    一句话版本：<b>你的录音和工程不会离开这台设备。</b>
-    本应用没有服务器、没有账号、不上传任何音频或个人信息。
+    The short version: <b>your recordings and projects never leave your device.</b>
+    No servers, no accounts, no uploads.
   </div>
 
-  <h2>1. 我们收集什么</h2>
-  <p><b>不收集任何数据。</b>应用没有后端服务，没有分析 SDK，没有广告网络，没有崩溃上报。</p>
+  <h2>1. What we collect</h2>
+  <p><b>Nothing.</b> The app has no backend, no analytics SDK, no ad network and no crash reporting.</p>
 
-  <h2>2. 麦克风</h2>
+  <h2>2. Microphone</h2>
   <table>
-    <tr><th>为什么需要</th><td>录制你哼唱的旋律，在本地做音高提取，转成可编辑的音符。</td></tr>
-    <tr><th>音频去哪了</th><td><b>只在浏览器内存里</b>。处理完成后你可以选择导出为本机文件，否则关闭页面即丢弃。</td></tr>
-    <tr><th>是否上传</th><td>否。除非你自己点「分享链接」把工程编码进 URL 并主动发出去，否则不会有任何外发。</td></tr>
-    <tr><th>何时授权</th><td>只有你点「开始录音」时浏览器才会询问；拒绝授权不影响其它功能。</td></tr>
+    <tr><th>Why we need it</th><td>To record the melody you hum and extract its pitch locally into editable notes.</td></tr>
+    <tr><th>Where the audio goes</th><td><b>Browser memory only.</b> After processing you may export it to a local file; otherwise it is discarded when the page closes.</td></tr>
+    <tr><th>Is it uploaded?</th><td>No. Nothing leaves the device unless you explicitly click “Share” to encode a project into a URL and send it yourself.</td></tr>
+    <tr><th>When you are asked</th><td>Only when you click Record. Declining does not affect other features.</td></tr>
   </table>
 
-  <h2>3. 本地存储</h2>
-  <p>为了「关掉再打开还能继续编辑」，应用使用浏览器的 <code>localStorage</code> 保存当前工程（音符、轨道、混音参数、界面偏好）。</p>
+  <h2>3. Local storage</h2>
+  <p>To remember your work between sessions the app uses the browser's <code>localStorage</code> to store the current project (notes, tracks, mixer settings, UI preferences).</p>
   <ul>
-    <li>数据保存在你自己的浏览器里，键名形如 <code>hum2song.project.v1</code></li>
-    <li>清空方式：应用内点「新建工程」，或清除浏览器站点数据</li>
-    <li>没有任何副本存在于服务端</li>
+    <li>Data lives in your own browser, under keys such as <code>hum2song.project.v1</code></li>
+    <li>To erase it: click “New project” in the app, or clear site data in your browser</li>
+    <li>No copy exists on any server</li>
   </ul>
 
-  <h2>4. 导入的文件</h2>
-  <p>你导入的音频文件（mp3 / wav / ogg / m4a）只在浏览器内解码，不会上传。</p>
+  <h2>4. Imported files</h2>
+  <p>Audio files you import (mp3 / wav / ogg / m4a) are decoded in the browser and never uploaded.</p>
 
-  <h2>5. 第三方组件</h2>
+  <h2>5. Third-party components</h2>
   <table>
-    <tr><th>Tone.js</th><td>音频合成与播放引擎（MIT）。随应用本地分发。</td></tr>
-    <tr><th>Basic Pitch</th><td>音高识别模型（Apache-2.0）。<b>首次使用时从 CDN 下载模型文件</b>，只下载、不上传；断网时自动回退到内置的 YIN 算法。</td></tr>
-    <tr><th>钢琴采样</th><td>Salamander Grand Piano（CC-BY 3.0，Alexander Holm）。本地文件。</td></tr>
-    <tr><th>其它采样</th><td>尤克里里、竖琴、陶笛、管风琴、萨克斯（均为 CC0）。本地文件。</td></tr>
+    <tr><th>Tone.js</th><td>Audio synthesis and playback engine (MIT). Bundled with the app.</td></tr>
+    <tr><th>Basic Pitch</th><td>Pitch detection model (Apache-2.0). <b>The model file is downloaded from a CDN on first use</b> — download only, nothing sent. If offline, the app falls back to its built-in YIN algorithm.</td></tr>
+    <tr><th>Piano samples</th><td>Salamander Grand Piano (CC-BY 3.0, Alexander Holm). Bundled locally.</td></tr>
+    <tr><th>Other samples</th><td>Ukulele, harp, ocarina, pipe organ, tenor sax (all CC0). Bundled locally.</td></tr>
   </table>
 
-  <h2>6. 你创作的音乐</h2>
-  <p>基于你哼唱生成的编曲，<b>版权归你</b>，可自由商用。采样音频的版权仍属原作者，按 CC-BY / CC0 条款使用。</p>
+  <h2>6. Music you create</h2>
+  <p>Arrangements generated from your humming <b>belong to you</b>, including commercial use. Sample recordings remain under their original licences (CC-BY / CC0).</p>
 
-  <h2>7. 儿童</h2>
-  <p>本应用不面向 13 岁以下儿童，也不收集任何年龄信息。</p>
+  <h2>7. Children</h2>
+  <p>The app is not directed at children under 13 and collects no age information.</p>
 
-  <h2>8. 政策变更</h2>
-  <p>如有变更会更新本页顶部的日期。由于不收集数据，预计不会有实质性变化。</p>
+  <h2>8. Changes</h2>
+  <p>Material changes will update the date above. Since no data is collected, we do not expect any.</p>
 
-  <h2>9. 联系方式</h2>
-  <p>问题、建议或数据相关的疑问：<a href="https://github.com/zhu159666/Sing-Your-Song/issues">GitHub Issues</a></p>
+  <h2>9. Contact</h2>
+  <p>Questions or data-related requests: <a href="https://github.com/zhu159666/Sing-Your-Song/issues">GitHub Issues</a></p>
 </main>
 </body>
 </html>
