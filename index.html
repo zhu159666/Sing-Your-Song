@@ -299,6 +299,15 @@
     width: 1px; height: 24px; background: rgba(231,237,243,.85); }
   .tl-block.jianpu { display: flex; align-items: center; justify-content: center;
     font-size: 11px; font-weight: 600; color: #0b0e13; }
+  /* 语言块：英文模式下藏中文帮助，反之亦然 */
+  body.lang-en [data-lang="zh"] { display: none; }
+  body:not(.lang-en) [data-lang="en"] { display: none; }
+
+  .lang-btn { margin-top: 6px; font-size: 11px; letter-spacing: .02em;
+    color: var(--muted); border: 1px solid var(--line); border-radius: 6px;
+    padding: 6px 0; background: none; cursor: pointer; }
+  .lang-btn:hover { color: var(--text); border-color: var(--line-strong); }
+
   .tl-coach { display: none; position: absolute; left: 12px; top: 2px; z-index: 5;
     padding: 2px 8px; font-size: 11px; border-radius: 999px; pointer-events: none;
     color: #0b0e13; background: #9dc0ff; white-space: nowrap; }
@@ -542,6 +551,7 @@
           <path d="M12 16.5h.01" />
         </svg>问题说明
       </button>
+      <button id="btnLang" class="rail-btn lang-btn" title="Switch language / 切换语言" data-no-i18n>中文</button>
     </nav>
   </aside>
 
@@ -767,8 +777,46 @@
     </div>
 
     <!-- ================= 视图 3：问题说明 ================= -->
-    <div id="view-help" class="view" hidden>
-      <section class="panel">
+    <div id="view-help" class="view" hidden data-no-i18n>
+      <section class="panel lang-block" data-lang="en">
+        <div class="panel-head"><h2 class="panel-title">Quick start</h2></div>
+        <ul class="help-list">
+          <li><b>Record</b> — click Record, hum a melody, click Stop. Pitch is extracted and quantised automatically.</li>
+          <li><b>Edit</b> — click a cell to add a note, click a block to delete it. Drag to move, drag the right edge to resize, Alt+drag up/down to change velocity.</li>
+          <li><b>Select</b> — press and drag with <code>Shift</code>, or click the <b>Select</b> button on touch devices. Then Copy / Paste / Delete / transpose ±12.</li>
+          <li><b>Notation</b> — switch between piano roll, staff and jianpu in the toolbar.</li>
+          <li><b>Tracks</b> — each track has its own scale grid; the dropdown both names the track and picks its timbre.</li>
+          <li><b>Mix</b> — fader, pan, 3-band EQ, reverb send per track; M mutes, S solos.</li>
+          <li><b>Export</b> — Download WAV (1/2/4 passes) or MIDI (standard .mid).</li>
+          <li><b>Auto-save</b> — the project is stored in this browser. Use New project to start blank, or export JSON to back up.</li>
+          <li><b>Playhead</b> — drag anywhere on the ruler, or drag the line itself.</li>
+        </ul>
+      </section>
+
+      <section class="panel lang-block" data-lang="en">
+        <div class="panel-head"><h2 class="panel-title">Shortcuts</h2></div>
+        <ul class="help-list">
+          <li><code>Space</code> play/stop · <code>Esc</code> stop</li>
+          <li><code>R</code> record · <code>N</code> new track</li>
+          <li><code>Ctrl+Z</code> undo · <code>Ctrl+Shift+Z</code> redo</li>
+          <li><code>Ctrl+C</code> copy selection · <code>Ctrl+V</code> paste mode</li>
+          <li><code>E</code> export WAV · <code>+</code> add 20 bars</li>
+        </ul>
+      </section>
+
+      <section class="panel lang-block" data-lang="en">
+        <div class="panel-head"><h2 class="panel-title">Privacy &amp; licence</h2></div>
+        <ul class="help-list">
+          <li>Audio is processed entirely on your device. Nothing is uploaded.</li>
+          <li>Projects are stored in this browser's local storage only.</li>
+          <li>Music you create is yours, including commercial use.</li>
+          <li>Piano samples: Salamander Grand Piano (CC-BY 3.0, Alexander Holm).
+              Other samples: CC0. Synth timbres contain no samples.</li>
+        </ul>
+        <p class="hint">Full policy: <a href="./privacy.html" target="_blank" style="color:var(--accent)">privacy.html</a></p>
+      </section>
+
+      <section class="panel lang-block" data-lang="zh">
         <div class="panel-head"><h2 class="panel-title">版本 <span class="sub" id="appVersion"></span></h2></div>
         <p class="hint">隐私政策：<a href="./privacy.html" target="_blank" style="color:var(--accent)">privacy.html</a>（音频只在本地处理，不上传）</p>
         <p class="hint">打开页面时如果还是旧界面，说明浏览器缓存了旧文件：
@@ -904,8 +952,12 @@ function animateEl(el, frames, options) {
 
 function setStatus(text) {
   const el = $('status');
-  if (!el || el.textContent === text) return;
-  el.textContent = text;
+  if (!el) return;
+  // 英文模式下自动翻译状态文案（翻不了的原样显示）
+  const shown = currentLang === 'en' ? tr(text) : text;
+  el.__zh = text;
+  if (el.textContent === shown) return;
+  el.textContent = shown;
   // 状态文字换掉时闪一下，避免它悄悄变化没人注意
   if (el.animate) el.animate([{ opacity: 0.35 }, { opacity: 1 }], { duration: 220, easing: 'ease-out' });
 }
@@ -1569,7 +1621,225 @@ let suppressClickUntil = 0;   // 拖动结束后短暂忽略 click，避免误�
 let selectMode = false;       // 触屏友好：开启后拖拽 = 框选，点格子不再加音符
 let hitTargets = [];          // [{ start, el }]，播放头扫过时用来弹一下
 let notationMode = 'roll';    // roll | staff | jianpu
-const APP_VERSION = '2026.11.20.39';   // 每次发布改这里，页面底部能看到
+const APP_VERSION = '2026.11.21.40';
+
+// ==================== 多语言 ====================
+// 默认英文；浏览器是中文时自动用中文；用户手动切换后记住。
+const LANG_KEY = 'hum2song.lang';
+const ZH2EN = {
+  // 侧栏 / 标题
+  'Hum → Song · 哼唱编曲工作台': 'Sing Your Song · Hum Arranger',
+  '音频制作': 'Studio', '音色管理': 'Timbres', '问题说明': 'Help',
+  // 顶部工具条
+  '开始录音': 'Record', '停止': 'Stop', '导入音频': 'Import audio', '引擎': 'Engine',
+  '自动（失败退回 YIN）': 'Auto (fallback to YIN)', '仅 Basic Pitch': 'Basic Pitch only',
+  '仅内置 YIN': 'Built-in YIN only', '去噪': 'Denoise', '网格': 'Grid', '关闭': 'Off',
+  '测速': 'Detect tempo', '低音': 'Bass', '循环': 'Loop', '节拍器': 'Metronome',
+  '播放': 'Play', '1 遍': '×1', '2 遍': '×2', '4 遍': '×4',
+  '下载 WAV': 'Download WAV', '分享': 'Share',
+  // 时间轴
+  '时间轴': 'Timeline', '新轨道': 'New track', '20 小节': '+20 bars', '复制': 'Copy',
+  '粘贴': 'Paste', '谱面': 'Notation', '卷帘': 'Piano roll', '五线谱': 'Staff',
+  '简谱': 'Jianpu', '选择': 'Select', '生成和弦': 'Chords', '检测调性': 'Detect key',
+  '吸附到调': 'Snap to key', '清空本轨': 'Clear track', '清空鼓点': 'Clear drums',
+  '新建工程': 'New project', '拖动刻度尺定位': 'Drag ruler to seek',
+  '在这里按住拖动，可移动播放头': 'Drag here to move the playhead',
+  // 横屏
+  '竖屏看时间轴太挤了，横过来舒服得多': 'The timeline is cramped in portrait — try landscape',
+  '全屏横屏': 'Fullscreen', '不用了': 'Not now',
+  // 力度 / 混音
+  '力度': 'Velocity', '删除选区': 'Delete', '混音': 'Mixer',
+  '推子 / 声像 / 三段 EQ / 混响发送 / M · S': 'Fader / pan / 3-band EQ / reverb send / M · S',
+  'M 静音、S 独奏只影响播放与导出；推子单位 dB；EQ 是低/中/高三段增益。':
+    'M mutes, S solos (affects playback and export). Fader is dB. EQ is low/mid/high gain.',
+  '工程数据 · 自动保存在本浏览器': 'Project data · auto-saved in this browser',
+  '导出工程 JSON': 'Export project JSON', '导入工程': 'Import project',
+  '（提取结果会打印在这里）': '(extraction output appears here)',
+  // 音色页
+  '内置音色': 'Built-in timbres', '合成器参数，无采样': 'Synth presets, no samples',
+  '点「试听」听一小段琶音；点「采用」把它设为当前轨道的音色。':
+    'Preview plays a short arpeggio; Use assigns it to the current track.',
+  '采样音色': 'Sampled instruments', '真实乐器录音 · 首次试听时加载': 'Real recordings · loaded on first preview',
+  '我的音色': 'My presets', '保存在这台机器的浏览器里': 'Stored in this browser',
+  '把当前音色存为预设': 'Save current timbre', '试听': 'Preview', '采用': 'Use',
+  '存下来的是当前轨道的音色参数，可以随时采用或删除。':
+    'Saves the current track timbre parameters; apply or delete anytime.',
+  '分析音色': 'Analyse timbre', '规划中，尚未实现': 'Planned, not implemented yet',
+  '上传音频分析音色（未实现）': 'Upload audio to analyse (not implemented)',
+  // 帮助
+  '版本': 'Version', '快捷键': 'Shortcuts', '先记这几个，效率翻倍': 'Learn these first',
+  '界面怎么用': 'How to use', '出问题怎么办': 'Troubleshooting',
+  '在输入框、下拉框里打字时快捷键不生效，不会抢你的按键。':
+    'Shortcuts are ignored while typing in inputs or selects.',
+  '打开页面时如果还是旧界面，说明浏览器缓存了旧文件：':
+    'Seeing an old build? Your browser cached it:',
+  '（音频只在本地处理，不上传）': '(audio is processed locally, never uploaded)',
+  // 鼓件 / 轨道
+  '和弦': 'Chords', '鼓点': 'Drums', '底鼓': 'Kick', '军鼓': 'Snare', '闭镲': 'Hi-hat',
+  '开镲': 'Open hat', '拍手': 'Clap', '通鼓': 'Tom', '低音': 'Bass',
+  // 音色名
+  '钢琴': 'Piano', '电钢琴': 'E.Piano', '吉他': 'Guitar', '长笛': 'Flute',
+  '电子合成器': 'Synth', '弦乐': 'Strings', '指弹贝斯': 'Bass gtr', '钟琴': 'Bell',
+  '钢琴·采样': 'Piano (sampled)', '尤克里里·采样': 'Ukulele (sampled)',
+  '竖琴·采样': 'Harp (sampled)', '陶笛·采样': 'Ocarina (sampled)',
+  '管风琴·采样': 'Organ (sampled)', '萨克斯·采样': 'Sax (sampled)',
+  // 长提示
+  '点格子加音、点方块删音 · 拖方块移动 / 拖右缘改长度 / Alt 上下拖改力度 · Shift 拖框选区（Ctrl+C 复制）':
+    'Click a cell to add a note, click a block to delete · drag to move / drag right edge to resize / Alt+drag to change velocity · Shift+drag to select',
+  '拖动刻度尺定位': 'Drag ruler to seek',
+  '在这里按住拖动，可移动播放头': 'Drag here to move the playhead',
+  '空轨道 · 点格子画音符，或录音/导入': 'Empty track · click cells to draw, or record/import',
+  '已恢复上次的编辑': 'Restored your last session',
+  '想从空白开始点「新建工程」': 'use New project for a blank slate',
+  // 状态栏
+  '就绪。点「开始录音」授权麦克风。': 'Ready. Click Record to grant microphone access.',
+};
+
+const EN2ZH = Object.fromEntries(Object.entries(ZH2EN).map(([zh, en]) => [en, zh]));
+
+// 带数字/变量的话，用规则而不是整句表
+const EN_RULES = [
+  [/^(\d+) 个音符$/, '$1 notes'],
+  [/^(\d+) 小节 · 1 轨$/, '$1 bars · 1 track'],
+  [/^(\d+) 小节 · (\d+) 轨$/, '$1 bars · $2 tracks'],
+  [/^(\d+) 轨$/, '$1 track'],
+  [/^(\d+) 小节$/, '$1 bars'],
+  [/^推断出 (\d+) 小节和弦/, 'Inferred $1 bars of chords'],
+  [/^已恢复上次的编辑（(\d+) 个音符）/, 'Restored your last session ($1 notes)'],
+  [/^删掉了选中的 (\d+) 个音符$/, 'Deleted $1 notes'],
+  [/^选区移调 ([+-]?\d+) 半音$/, 'Transposed selection by $1 semitones'],
+  [/^轨道改名为「(.+)」，音色同步切换。$/, 'Track renamed to "$1"; timbre switched.'],
+  [/^正在试听「(.+)」$/, 'Previewing "$1"'],
+  [/^加载「(.+)」…$/, 'Loading "$1"…'],
+  [/^采样已就绪$/, 'Samples ready'],
+  [/^已新建空白工程$/, 'New blank project created'],
+  [/^加上了?「(.+)」/, 'Added "$1"'],
+];
+
+let currentLang = 'en';
+
+function detectLang() {
+  try {
+    const saved = localStorage.getItem(LANG_KEY);
+    if (saved === 'zh' || saved === 'en') return saved;
+  } catch (err) { /* 忽略 */ }
+  return (navigator.language || 'en').toLowerCase().startsWith('zh') ? 'zh' : 'en';
+}
+
+const TR_KEYS = Object.keys(ZH2EN).sort((a, b) => b.length - a.length);
+
+/** 把一句中文翻成英文；整句优先，其次按词条子串替换，再走数字规则 */
+function tr(text) {
+  if (!text || !/[\u4e00-\u9fa5]/.test(text)) return text;
+
+  const trimmed = text.trim();
+  if (ZH2EN[trimmed]) return text.replace(trimmed, ZH2EN[trimmed]);
+
+  let out = text;
+  for (const [re, to] of EN_RULES) {
+    if (re.test(trimmed)) {
+      out = text.replace(trimmed, trimmed.replace(re, to));
+      break;
+    }
+  }
+  // 还有点中文就按词条替换（长词优先，避免"钢琴"先命中把"钢琴·采样"拆坏）
+  for (const key of TR_KEYS) {
+    if (out.includes(key)) out = out.split(key).join(ZH2EN[key]);
+  }
+  return out;
+}
+
+/** 遍历文本节点做翻译；用 __zh 保留原文，切回中文时还原 */
+function translateNode(node) {
+  if (node.__zh === undefined) node.__zh = node.nodeValue;
+  const raw = node.__zh;
+  if (!raw || !/[\u4e00-\u9fa5]/.test(raw)) return;
+  if (currentLang === 'en') {
+    const next = tr(raw);
+    if (next !== node.nodeValue) node.nodeValue = next;
+  } else if (node.nodeValue !== raw) {
+    node.nodeValue = raw;
+  }
+}
+
+function translateAttributes(root) {
+  if (!root || root.nodeType !== 1) return;
+  const els = root.matches && root.matches('[title]') ? [root, ...root.querySelectorAll('[title]')] : [...root.querySelectorAll('[title]')];
+  els.forEach((el) => {
+    if (el.__titleZh === undefined) el.__titleZh = el.getAttribute('title');
+    const raw = el.__titleZh;
+    if (raw && /[\u4e00-\u9fa5]/.test(raw)) {
+      el.setAttribute('title', currentLang === 'en' ? tr(raw) : raw);
+    }
+  });
+}
+
+function walkAndTranslate(root) {
+  if (!root) return;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      const parent = node.parentElement;
+      if (!parent) return NodeFilter.FILTER_REJECT;
+      const tag = parent.tagName;
+      if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'TEXTAREA') return NodeFilter.FILTER_REJECT;
+      if (parent.closest('[data-no-i18n]')) return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    },
+  });
+  const nodes = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(translateNode);
+  translateAttributes(root);
+}
+
+function applyLanguage(lang, rerender) {
+  currentLang = lang === 'zh' ? 'zh' : 'en';
+  document.documentElement.lang = currentLang === 'zh' ? 'zh-CN' : 'en';
+  document.body.classList.toggle('lang-en', currentLang === 'en');
+  try { localStorage.setItem(LANG_KEY, currentLang); } catch (err) { /* 忽略 */ }
+
+  walkAndTranslate(document.body);
+
+  // 属性里的文案也要换
+  document.querySelectorAll('[title]').forEach((el) => {
+    if (el.__titleZh === undefined) el.__titleZh = el.getAttribute('title');
+    const raw = el.__titleZh;
+    if (!raw) return;
+    el.setAttribute('title', currentLang === 'en' ? tr(raw) : raw);
+  });
+
+  if (rerender && typeof renderTimeline === 'function') {
+    // 时间轴里的文案是动态生成的，重绘一遍让它按新语言渲染
+    try { renderTimeline(); renderMixer(); renderTrackList(); renderJson(); } catch (err) { /* 忽略 */ }
+  }
+
+  const btn = document.getElementById('btnLang');
+  if (btn) btn.textContent = currentLang === 'en' ? '中文' : 'EN';
+}
+
+/** 动态插入的节点（重绘时间轴等）自动翻译 */
+function watchLanguage() {
+  const observer = new MutationObserver((records) => {
+    if (currentLang !== 'en') return;
+    for (const record of records) {
+      // 元素新增
+      record.addedNodes.forEach((node) => {
+        if (node.nodeType === 1) walkAndTranslate(node);
+        else if (node.nodeType === 3) translateNode(node);
+      });
+      // 文本被改写（textContent 赋值）
+      if (record.type === 'characterData' && record.target) {
+        translateNode(record.target);
+      }
+    }
+  });
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+    characterDataOldValue: true,
+  });
+}   // 每次发布改这里，页面底部能看到
 let lastPlayheadSec = 0;
 let playheadSec = 0;          // 播放头位置（秒）
 let playheadRAF = 0;
@@ -4900,6 +5170,21 @@ try {
     if (sel) sel.value = savedNotation;
   }
 } catch (err) { /* 忽略 */ }
+
+// ---- 语言：默认英文，中文浏览器自动中文 ----
+currentLang = detectLang();
+watchLanguage();
+applyLanguage(currentLang, false);
+{
+  const langBtn = $('btnLang');
+  if (langBtn) {
+    langBtn.addEventListener('click', () => {
+      const next = currentLang === 'en' ? 'zh' : 'en';
+      applyLanguage(next, true);
+      setStatus(next === 'en' ? 'Language: English' : '界面语言：中文');
+    });
+  }
+}
 
 const versionEl = $('appVersion');
 if (versionEl) versionEl.textContent = '构建 ' + APP_VERSION;

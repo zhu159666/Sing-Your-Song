@@ -1,5 +1,5 @@
 # Sing Your Song 发布包校验值
-# 生成时间: 2026-11-20T15:58:57.832Z
+# 生成时间: 2026-11-20T16:19:53.392Z
 # 用法: certutil -hashfile <文件名> SHA256
 
 5154e165bd6c2cc0cfbcd8916498c7abab0497923bafcd5cb07673fe8480087d  Sing Your Song/LICENSE   (1.1 KB)
@@ -18,8 +18,8 @@ dc17ef7834fa7799b3a3aa85e0c0064f78dbe084c8d8c6943983e6e4c16f343b  Sing Your Song
 23aaae578db363e9dfdf72fc98c37a8927d280ae06e23323fb70747b8b1725e8  Sing Your Song/resources/app/web/icons/icon-192.png   (3.5 KB)
 31934c3dc9a6fc62538c274016a336aba8fea5b0bc2590f77c1754be1d84c79e  Sing Your Song/resources/app/web/icons/icon-512.png   (6.8 KB)
 5e1910177344ff5417f02ad01f516458d7457fe991bc34aa2ae94e18be9a1417  Sing Your Song/resources/app/web/icons/icon.html   (0.5 KB)
-43b4dff7071e006abf44a4159eb3aaf638f90bb96ef19c0ea0f24f420f3fdbf5  Sing Your Song/resources/app/web/index.html   (211.3 KB)
-c7d7428aae654af0725576408133528ed0ae19e15fa9f201df52da91019cd40b  Sing Your Song/resources/app/web/manifest.webmanifest   (2.4 KB)
+499b9ff084982b8964159139340cc0d651ee804df2f66fc7bea12b6a817f148d  Sing Your Song/resources/app/web/index.html   (225.4 KB)
+b2ac5b8b5cbf5f594070cac53aae6c8d405a1b6ca27cfda413a215c42e6e202b  Sing Your Song/resources/app/web/manifest.webmanifest   (2.6 KB)
 3488361196be2676e7e4cac396f0a7ed27121427b6b341b7af25253712b34012  Sing Your Song/resources/app/web/privacy.html   (4.5 KB)
 39d7515eff4da55321e404abdcd84d2429bdcb55e34375637834e1d22c9f56a6  Sing Your Song/resources/app/web/samples/CREDITS.md   (1.8 KB)
 a4642a21a0394fb7b6c4215d6e5abfab38981105270e2f98e8b81fcd4f80d26f  Sing Your Song/resources/app/web/samples/harp/A2.mp3   (32.2 KB)
@@ -118,4 +118,4 @@ e8fac5817d9b33ae78b0bd2863750047cbbda211bc28342d0cbea97a07656757  Sing Your Song
 32d83ff113fef532a9f97e0d2831f8656628ab1c99e9060f0332b1532839afd9  Sing Your Song/vk_swiftshader_icd.json   (0.1 KB)
 f6c99137c3d6af45bc2262815867d6d37f5dcb0552caffc90cd77fb6561b7491  Sing Your Song/vulkan-1.dll   (874.0 KB)
 0068ff044c543cb89fc080c37564c3bc014ba408cb7925ebbeefccd47d5be147  Sing Your Song/怎么用.txt   (0.5 KB)
-7445d1b84546b35c5a47fae0dfa32853a0e60e9495940e64792b1f0db4ed8901  SingYourSong-1.0.0-win-x64.zip   (104630.6 KB)
+f113b3d157382c451fa6eaf3f0dcb56d4af7a6cd2085d9770089ac2ee4b9a548  SingYourSong-1.0.0-win-x64.zip   (104636.2 KB)

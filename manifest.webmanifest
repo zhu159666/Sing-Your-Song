@@ -1,17 +1,25 @@
 {
   "id": "/sing-your-song/",
-  "name": "Sing Your Song · 哼唱编曲",
+  "name": "Sing Your Song · Hum Arranger",
   "short_name": "Sing Your Song",
-  "description": "哼一段旋律，自动提取音高，在时间轴上编成一首歌，导出 WAV / MIDI。全程本地处理。",
+  "description": "Hum a melody, get an arrangement you can edit. Multi-track, mixing, chords, drums — export WAV/MIDI. Everything stays on your device.",
   "lang": "zh-CN",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "minimal-ui"
+  ],
   "orientation": "landscape",
   "background_color": "#0a0e14",
   "theme_color": "#0a0e14",
-  "categories": ["music", "productivity", "utilities"],
+  "categories": [
+    "music",
+    "productivity",
+    "utilities"
+  ],
   "screenshots": [
     {
       "src": "store/screenshots/01-main-1366x768.png",
@@ -57,12 +65,42 @@
     }
   ],
   "icons": [
-    { "src": "store/icons/icon-64.png", "sizes": "64x64", "type": "image/png" },
-    { "src": "store/icons/icon-128.png", "sizes": "128x128", "type": "image/png" },
-    { "src": "store/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "store/icons/icon-192-maskable.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-    { "src": "store/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "store/icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
-    { "src": "store/icons/icon-1024.png", "sizes": "1024x1024", "type": "image/png" }
+    {
+      "src": "store/icons/icon-64.png",
+      "sizes": "64x64",
+      "type": "image/png"
+    },
+    {
+      "src": "store/icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "store/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "store/icons/icon-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "store/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "store/icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "store/icons/icon-1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png"
+    }
   ]
 }
