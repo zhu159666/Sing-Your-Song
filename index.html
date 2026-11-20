@@ -783,7 +783,7 @@
       </section>
 
       <p id="disclaimer" class="disclaimer">本工具使用开源合成器（MIT 协议）、CC-BY 3.0 钢琴采样（Salamander Grand Piano · Alexander Holm）
-与 CC0 尤克里里采样（FreePats）。其余音色实时合成、不含采样版权。用户基于自身哼唱生成的音乐，版权归用户所有，可自由用于商业用途。</p>
+与 CC0 采样（FreePats / VCSL 的尤克里里、竖琴、陶笛、管风琴、萨克斯）。其余音色实时合成。用户基于自身哼唱生成的音乐，版权归用户所有，可自由用于商业用途。</p>
     </div>
 
   </div>
@@ -3061,6 +3061,75 @@ const SAMPLE_TIMBRES = {
       C4: 'C4.mp3', D4: 'D4.mp3', E4: 'E4.mp3', 'F#4': 'Fs4.mp3', G4: 'G4.mp3',
       A4: 'A4.mp3', B4: 'B4.mp3', 'C#5': 'Cs5.mp3', 'D#5': 'Ds5.mp3',
       F5: 'F5.mp3', G5: 'G5.mp3', A5: 'A5.mp3', C6: 'C6.mp3',
+    },
+  },
+  harp_sampled: {
+    label: '竖琴·采样',
+    kind: 'sampler',
+    baseUrl: 'samples/harp/',
+    release: 1.4,
+    credit: 'VCSL Concert Harp（CC0 1.0）',
+    urls: {
+      'A2': 'A2.mp3',
+      'B1': 'B1.mp3',
+      'B5': 'B5.mp3',
+      'C3': 'C3.mp3',
+      'D2': 'D2.mp3',
+      'D6': 'D6.mp3',
+      'E1': 'E1.mp3',
+      'E5': 'E5.mp3',
+      'F4': 'F4.mp3',
+      'F7': 'F7.mp3',
+      'G3': 'G3.mp3',
+    },
+  },
+  ocarina_sampled: {
+    label: '陶笛·采样',
+    kind: 'sampler',
+    baseUrl: 'samples/ocarina/',
+    release: 0.7,
+    credit: 'FreePats Ocarina 1（CC0 1.0）',
+    urls: {
+      'A#5': 'As5.mp3',
+      'A6': 'A6.mp3',
+      'C#5': 'Cs5.mp3',
+      'E5': 'E5.mp3',
+      'F#4': 'Fs4.mp3',
+      'F5': 'F5.mp3',
+      'G5': 'G5.mp3',
+    },
+  },
+  organ_sampled: {
+    label: '管风琴·采样',
+    kind: 'sampler',
+    baseUrl: 'samples/organ/',
+    release: 1.8,
+    credit: 'FreePats Church Organ（CC0 1.0）',
+    urls: {
+      'C2': 'C2.mp3',
+      'C4': 'C4.mp3',
+      'C6': 'C6.mp3',
+      'F#2': 'Fs2.mp3',
+      'F#4': 'Fs4.mp3',
+      'F#6': 'Fs6.mp3',
+    },
+  },
+  sax_sampled: {
+    label: '萨克斯·采样',
+    kind: 'sampler',
+    baseUrl: 'samples/sax/',
+    release: 0.9,
+    credit: 'FreePats Tenor Saxophone（CC0 1.0）',
+    urls: {
+      'C3': 'C3.mp3',
+      'C4': 'C4.mp3',
+      'C5': 'C5.mp3',
+      'E2': 'E2.mp3',
+      'E3': 'E3.mp3',
+      'E5': 'E5.mp3',
+      'G#2': 'Gs2.mp3',
+      'G#3': 'Gs3.mp3',
+      'G#4': 'Gs4.mp3',
     },
   },
 };

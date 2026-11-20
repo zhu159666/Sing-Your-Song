@@ -55,11 +55,10 @@ python -m http.server 8000
 
 ## 音色
 
-10 种音色：8 种实时合成（无采样、无版权问题）+ 2 种真实乐器采样。
+14 种音色：8 种实时合成（无采样、无版权问题）+ 6 种真实乐器采样。
 
-「钢琴·采样」用 **Salamander Grand Piano**（CC-BY 3.0，22 个音，约 1.5MB）；
-「尤克里里·采样」用 **FreePats Ukulele 1**（CC0，13 个音，288KB）。
-两者都是首次使用时才加载。来源与授权见 [samples/CREDITS.md](samples/CREDITS.md)。
+采样音色（首次使用时才加载，合计 3.2MB）：钢琴（CC-BY 3.0，22 音）、尤克里里、竖琴、陶笛、管风琴、萨克斯（均 CC0）。
+来源与授权见 [samples/CREDITS.md](samples/CREDITS.md)。
 
 你哼唱生成的音乐版权归你，可商用；采样版权仍属原作者，按 CC-BY 署名即可。
 
