@@ -34,16 +34,15 @@
   /* ---- 3D ---- */
   /* 卡片/通道条：指针移动时朝指针方向倾斜，内部元素分层浮起 */
   .mix-strip, .timbre-card {
-    transform-style: preserve-3d;
+    /* 去掉 preserve-3d 与常驻 will-change：它们是弹窗/滚动时闪白的主因 */
     transition: transform .28s var(--ease), box-shadow .28s var(--ease);
-    will-change: transform;
+    backface-visibility: hidden;
+    background: var(--panel);
   }
   .mix-strip:hover, .timbre-card:hover {
     box-shadow: 0 26px 50px -30px rgba(0,0,0,.95), 0 0 0 1px var(--line-strong);
   }
-  .mix-strip .mix-name { transform: translateZ(18px); }
-  .mix-strip .mix-fader { transform: translateZ(10px); }
-  .mix-strip .mix-btns { transform: translateZ(26px); }
+  .mix-strip .mix-name, .mix-strip .mix-btns { position: relative; z-index: 2; }
 
   /* 音符块：本体抬升，悬停再往前倾一点 */
   .tl-block {
@@ -51,7 +50,7 @@
     transition: filter .14s var(--ease), box-shadow .16s var(--ease), transform .16s var(--ease);
   }
   .tl-block:hover {
-    transform: translate3d(0, -2px, 0) rotateX(9deg) scale(1.02);
+    transform: translateY(-2px) scale(1.02);
     box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 14px 26px -14px rgba(0,0,0,1);
   }
 
@@ -64,13 +63,12 @@
   }
 
   /* 第二层星空反向位移，和 #sky 形成真视差 */
-  #stars { transform: translate3d(calc(var(--px, 0) * 5px), calc(var(--py, 0) * 5px), 0);
-           transition: transform .6s cubic-bezier(.2,.8,.3,1); }
+  #stars { transform: translate3d(calc(var(--px, 0) * 5px), calc(var(--py, 0) * 5px), 0); }
 
   /* ---- 动效 ---- */
   /* 星空随鼠标轻微偏移，做出纵深感 */
-  #sky { transform: translate3d(calc(var(--px, 0) * -7px), calc(var(--py, 0) * -7px), 0) scale(1.02);
-         transition: transform .5s cubic-bezier(.2,.8,.3,1); }
+  /* 不要给全屏固定层加 transition：它会在弹窗/滚动时不断重绘，容易闪白 */
+  #sky { transform: translate3d(calc(var(--px, 0) * -7px), calc(var(--py, 0) * -7px), 0) scale(1.02); }
 
   /* 按钮涟漪 */
   button { position: relative; overflow: hidden; }
@@ -292,6 +290,18 @@
   .mix-btns { display: flex; gap: 4px; }
   .mix-btns button { flex: 1; padding: 2px 0; font-size: 10px; border-radius: 4px; }
   .mix-btns button.on { background: rgba(126,166,255,.22); border-color: var(--accent); color: #fff; }
+  /* ---- 谱面模式 ---- */
+  .tl-block.staff {
+    height: 9px !important; border-radius: 50%; border: 0;
+    background: var(--text) !important; box-shadow: none !important;
+  }
+  .tl-block.staff::after { content: ''; position: absolute; right: 1px; top: -16px;
+    width: 1px; height: 24px; background: rgba(231,237,243,.85); }
+  .tl-block.jianpu { display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; color: #0b0e13; }
+  .staff-line { position: absolute; left: 0; right: 0; height: 1px;
+    background: rgba(255,255,255,.3); pointer-events: none; }
+
   .tl-hover { position: absolute; left: 0; top: 0; width: 0; height: 0; opacity: 0;
               border: 1px solid rgba(126,166,255,.5); background: rgba(126,166,255,.10);
               border-radius: 3px; pointer-events: none; z-index: 4;
@@ -633,6 +643,13 @@
               <span class="sub" id="zoomLabel">100%</span>
               <button id="btnZoomIn" class="mini ghost" title="放大网格">＋</button>
             </span>
+            <label class="sub" style="display:inline-flex;align-items:center;gap:5px">谱面
+              <select id="notation" class="mini" title="切换谱面显示">
+                <option value="roll">卷帘</option>
+                <option value="staff">五线谱</option>
+                <option value="jianpu">简谱</option>
+              </select>
+            </label>
             <button id="btnSelect" class="mini ghost" title="开启后拖拽 = 框选一段旋律（触屏用）">选择</button>
             <button id="btnChords" class="mini ghost" title="按小节推断和弦，并让低音跟着和弦走">生成和弦</button>
             <button id="btnKey" class="mini ghost" title="从当前轨的音符推断调性">检测调性</button>
@@ -1468,7 +1485,23 @@ function cleanNotes(input, opts = CLEAN) {
 // ===========================================================================
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-const SHARP_ROWS = new Set([1, 3, 6, 8, 10]);      // 黑键音级：给这些行加一点底色，便于分辨
+const SHARP_ROWS = new Set([1, 3, 6, 8, 10]);
+const JIANPU_DEGREE = { 0: '1', 2: '2', 4: '3', 5: '4', 7: '5', 9: '6', 11: '7' };
+
+/** MIDI → 简谱写法：数字 + 高低音点（升号加 #） */
+function jianpuLabel(midi) {
+  const pc = ((Math.round(midi) % 12) + 12) % 12;
+  const octave = Math.floor(Math.round(midi) / 12) - 1;
+  const base = JIANPU_DEGREE[pc];
+  if (!base) {
+    // 升号音：用低半音的度数加 #
+    const lower = (pc - 1 + 12) % 12;
+    return '#' + (JIANPU_DEGREE[lower] || '?');
+  }
+  if (octave >= 5) return base + '·';
+  if (octave <= 3) return base + '̣';
+  return base;
+}      // 黑键音级：给这些行加一点底色，便于分辨
 const midiToName = (m) => NOTE_NAMES[((Math.round(m) % 12) + 12) % 12] + (Math.floor(Math.round(m) / 12) - 1);
 const midiToHz = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
@@ -1502,6 +1535,7 @@ let saveTimer = 0;
 let suppressClickUntil = 0;   // 拖动结束后短暂忽略 click，避免误删
 let selectMode = false;       // 触屏友好：开启后拖拽 = 框选，点格子不再加音符
 let hitTargets = [];          // [{ start, el }]，播放头扫过时用来弹一下
+let notationMode = 'roll';    // roll | staff | jianpu
 let lastPlayheadSec = 0;
 let playheadSec = 0;          // 播放头位置（秒）
 let playheadRAF = 0;
@@ -2378,11 +2412,56 @@ function drawTimeline() {
     tick.textContent = bar + 1;
     ruler.appendChild(tick);
   }
-  ruler.addEventListener('click', (event) => {
+  // 左键点击定位，右键按住拖动连续拖动播放头（触屏长按也可以）
+  const seekFrom = (event) => {
     const rect = ruler.getBoundingClientRect();
     const col = Math.max(0, Math.floor((event.clientX - rect.left) / TL.cellW));
     seekTo(col * gridStep());
+  };
+
+  ruler.addEventListener('click', seekFrom);
+
+  ruler.addEventListener('contextmenu', (event) => event.preventDefault());
+  ruler.addEventListener('pointerdown', (event) => {
+    if (event.button !== 2 && event.button !== 0) return;
+    if (event.button === 0 && !event.shiftKey) return;   // 左键保持点击定位
+    event.preventDefault();
+    seekFrom(event);
+    ruler.setPointerCapture(event.pointerId);
+
+    const move = (moveEvent) => seekFrom(moveEvent);
+    const up = () => {
+      ruler.removeEventListener('pointermove', move);
+      ruler.removeEventListener('pointerup', up);
+      ruler.removeEventListener('pointercancel', up);
+    };
+    ruler.addEventListener('pointermove', move);
+    ruler.addEventListener('pointerup', up);
+    ruler.addEventListener('pointercancel', up);
   });
+
+  // 直接拖播放头本体也跟随
+  const playLine = root.querySelector('.tl-playhead');
+  if (playLine) {
+    playLine.style.pointerEvents = 'auto';
+    playLine.style.cursor = 'ew-resize';
+    playLine.addEventListener('pointerdown', (event) => {
+      event.preventDefault();
+      playLine.setPointerCapture(event.pointerId);
+      const laneRect = () => root.getBoundingClientRect();
+      const move = (moveEvent) => {
+        const rect = laneRect();
+        const x = moveEvent.clientX - rect.left - TL.headW;
+        seekTo(Math.max(0, x / TL.cellW * gridStep()));
+      };
+      const up = () => {
+        playLine.removeEventListener('pointermove', move);
+        playLine.removeEventListener('pointerup', up);
+      };
+      playLine.addEventListener('pointermove', move);
+      playLine.addEventListener('pointerup', up);
+    });
+  }
   rulerRow.appendChild(ruler);
   root.appendChild(rulerRow);
 
@@ -2481,6 +2560,23 @@ function drawTimeline() {
       'repeating-linear-gradient(180deg, rgba(255,255,255,.085) 0 1px, transparent 1px ' + rowH + 'px),' +
       'repeating-linear-gradient(90deg, rgba(255,255,255,.04) 0 1px, transparent 1px ' + TL.cellW + 'px)';
     lane.style.backgroundPosition = '0 ' + barH + 'px, 0 ' + barH + 'px';
+    if (notationMode === 'staff') {
+      // 五线谱只要纵向拍线，横向交给谱线
+      lane.style.backgroundImage =
+        'repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 1px, transparent 1px ' + TL.cellW + 'px)';
+    }
+
+    // 五线谱模式：按 E/G/B/D/F 的音高位置画出五条线
+    if (notationMode === 'staff') {
+      const STAFF_PCS = [4, 7, 11, 2, 5];
+      for (let p = span.lo; p <= span.hi; p++) {
+        if (!STAFF_PCS.includes(((p % 12) + 12) % 12)) continue;
+        const line = document.createElement('div');
+        line.className = 'staff-line';
+        line.style.top = (barH + (span.hi - p) * rowH + rowH / 2) + 'px';
+        lane.appendChild(line);
+      }
+    }
 
     // Shift + 拖动 = 框选一段旋律（松开后按 Ctrl+C 复制）
     lane.addEventListener('pointerdown', (event) => {
@@ -2553,6 +2649,15 @@ function drawTimeline() {
       for (const note of track.notes) {
         const block = document.createElement('div');
         block.className = 'tl-block' + (note.__sel ? ' is-sel' : '');
+        if (notationMode === 'staff') {
+          block.classList.add('staff');
+          block.style.width = '12px';
+          block.style.left = ((note.start / step) * TL.cellW + 5) + 'px';
+        }
+        else if (notationMode === 'jianpu') {
+          block.classList.add('jianpu');
+          block.textContent = jianpuLabel(note.midi);
+        }
         block.style.left = (note.start / step) * TL.cellW + 'px';
         block.style.width = Math.max(6, (note.dur / step) * TL.cellW - 2) + 'px';
         const rel = (Math.round(note.midi) - span.lo) / Math.max(1, span.hi - span.lo);
@@ -4262,6 +4367,13 @@ $('btnTransUp').addEventListener('click', () => transposeSelection(12));
 $('btnTransDown').addEventListener('click', () => transposeSelection(-12));
 $('btnZoomIn').addEventListener('click', () => setZoom(zoomLevel + 0.25));
 $('btnZoomOut').addEventListener('click', () => setZoom(zoomLevel - 0.25));
+$('notation').addEventListener('change', (event) => {
+  notationMode = event.target.value;
+  try { localStorage.setItem('hum2song.notation', notationMode); } catch (err) { /* 忽略 */ }
+  renderTimeline();
+  setStatus('谱面切换为「' + ('roll' === notationMode ? '卷帘' : notationMode === 'staff' ? '五线谱' : '简谱') + '」');
+});
+
 $('btnChords').addEventListener('click', () => {
   const track = selectedTrack();
   const chords = detectChords(track.notes);
@@ -4656,6 +4768,15 @@ setNotes([], null);
 try {
   const savedZoom = Number(localStorage.getItem('hum2song.zoom'));
   if (savedZoom >= 0.5 && savedZoom <= 2) setZoom(savedZoom);
+} catch (err) { /* 忽略 */ }
+
+try {
+  const savedNotation = localStorage.getItem('hum2song.notation');
+  if (savedNotation === 'roll' || savedNotation === 'staff' || savedNotation === 'jianpu') {
+    notationMode = savedNotation;
+    const sel = $('notation');
+    if (sel) sel.value = savedNotation;
+  }
 } catch (err) { /* 忽略 */ }
 
 const restored = loadProject();
