@@ -259,6 +259,15 @@
   .zoom-group .mini { padding: 2px 8px; }
 
   /* ---- 力度行 ---- */
+  .rotate-hint { display: flex; flex-direction: column; align-items: stretch; gap: 8px;
+                 margin: 8px 0; padding: 10px 12px; font-size: 12px;
+                 border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
+                 background: var(--panel); }
+  .rotate-hint span { color: var(--muted); line-height: 1.5; }
+  .rotate-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  /* 父容器可能被时间轴撑得很宽，按钮必须按内容宽度排，否则会被拉到几千像素 */
+  .rotate-actions button { flex: 0 0 auto; }
+
   .vel-row { display: flex; align-items: center; gap: 10px; margin-top: 8px;
              font-size: 12px; color: var(--muted); }
   .vel-row input[type="range"] { width: 180px; accent-color: var(--accent); }
@@ -632,6 +641,13 @@
             <button id="btnClearDrums" class="mini ghost">清空鼓点</button>
           </div>
         </div>
+        <div id="rotateHint" class="rotate-hint" hidden>
+          <span>竖屏看时间轴太挤了，横过来舒服得多</span>
+          <div class="rotate-actions">
+            <button id="btnRotate" class="mini primary">全屏横屏</button>
+            <button id="btnRotateSkip" class="mini">不用了</button>
+          </div>
+        </div>
         <p class="hint" id="rollHint">点格子加音、点方块删音 · 拖方块移动 / 拖右缘改长度 / Alt 上下拖改力度 · Shift 拖框选区（Ctrl+C 复制）</p>
         <div class="tl-scroll">
           <div id="timeline" class="tl"></div>
@@ -676,6 +692,14 @@
 
       <section class="panel">
         <div class="panel-head">
+          <h2 class="panel-title">采样音色 <span class="sub">真实乐器录音 · 首次试听时加载</span></h2>
+        </div>
+        <div id="sampleTimbreList" class="timbre-grid"></div>
+        <p class="hint">钢琴为 CC-BY 3.0（需署名），其余为 CC0（公有领域）。完整清单见仓库 samples/CREDITS.md。</p>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
           <h2 class="panel-title">我的音色 <span class="sub">保存在这台机器的浏览器里</span></h2>
           <div class="panel-tools">
             <button id="btnSaveTimbre" class="mini">把当前音色存为预设</button>
@@ -701,6 +725,20 @@
 
     <!-- ================= 视图 3：问题说明 ================= -->
     <div id="view-help" class="view" hidden>
+      <section class="panel">
+        <div class="panel-head"><h2 class="panel-title">快捷键 <span class="sub">先记这几个，效率翻倍</span></h2></div>
+        <ul class="help-list">
+          <li><code>空格</code> 播放 / 停止 · <code>Esc</code> 停止播放</li>
+          <li><code>R</code> 开始 / 停止录音 · <code>N</code> 新建轨道</li>
+          <li><code>Ctrl+Z</code> 撤销 · <code>Ctrl+Shift+Z</code> 重做</li>
+          <li><code>Ctrl+C</code> 复制选区 · <code>Ctrl+V</code> 进入粘贴模式</li>
+          <li><code>E</code> 导出 WAV · <code>+</code> 时间轴 +20 小节</li>
+          <li><code>Shift</code> 拖拽 = 框选（手机上点「选择」按钮）</li>
+          <li><code>Alt</code> 拖方块 = 改力度；<code>Alt</code> 点目标格 = 移调粘贴</li>
+        </ul>
+        <p class="hint">在输入框、下拉框里打字时快捷键不生效，不会抢你的按键。</p>
+      </section>
+
       <section class="panel">
         <div class="panel-head"><h2 class="panel-title">界面怎么用</h2></div>
         <ul class="help-list">
@@ -754,21 +792,6 @@
           <li><b>点了格子没反应</b>：先看底部状态栏有没有「加了 X（第 N 格）」——有就是渲染问题，
               没有说明点击没命中，可能是没点在泳道区域内。</li>
         </ul>
-      </section>
-
-      <section class="panel">
-        <div class="panel-head"><h2 class="panel-title">快捷键</h2></div>
-        <ul class="help-list">
-          <li><code>空格</code> 播放 / 停止</li>
-          <li><code>R</code> 开始 / 停止录音</li>
-          <li><code>N</code> 新建轨道</li>
-          <li><code>Ctrl+Z</code> 撤销 / <code>Ctrl+Shift+Z</code> 重做</li>
-          <li><code>Ctrl+C</code> 复制选区 / <code>Ctrl+V</code> 粘贴模式</li>
-          <li><code>E</code> 导出 WAV</li>
-          <li><code>+</code> 时间轴 +20 小节</li>
-          <li><code>Esc</code> 停止播放</li>
-        </ul>
-        <p class="hint">在输入框、下拉框里打字时快捷键不生效，不会抢你的按键。</p>
       </section>
 
       <section class="panel">
@@ -4474,6 +4497,14 @@ function renderTimbrePage() {
     }
   }
 
+  const sampleRoot = $('sampleTimbreList');
+  if (sampleRoot) {
+    sampleRoot.innerHTML = '';
+    for (const [key, cfg] of Object.entries(SAMPLE_TIMBRES)) {
+      sampleRoot.appendChild(makeSampleTimbreCard(key, cfg));
+    }
+  }
+
   const userRoot = $('userTimbreList');
   if (!userRoot) return;
   userRoot.innerHTML = '';
@@ -4486,6 +4517,78 @@ function renderTimbrePage() {
   }
   for (const preset of userTimbres) {
     userRoot.appendChild(makeTimbreCard(preset.id, preset, true));
+  }
+}
+
+/** 采样音色卡：试听会先加载对应采样（几百 KB） */
+function makeSampleTimbreCard(key, cfg) {
+  const card = document.createElement('div');
+  card.className = 'timbre-card';
+  attachTilt(card, 10);
+
+  const head = document.createElement('div');
+  head.className = 'timbre-head';
+
+  const name = document.createElement('div');
+  name.className = 'name';
+  name.textContent = cfg.label;
+
+  const badge = document.createElement('span');
+  badge.className = 'sub';
+  badge.textContent = Object.keys(cfg.urls).length + ' 音';
+  head.append(name, badge);
+
+  const credit = document.createElement('div');
+  credit.className = 'voice';
+  credit.textContent = cfg.credit || '';
+
+  const tools = document.createElement('div');
+  tools.className = 'row';
+
+  const previewBtn = document.createElement('button');
+  previewBtn.className = 'mini';
+  previewBtn.textContent = '试听';
+  previewBtn.addEventListener('click', () => { previewSampleTimbre(key).catch(() => {}); });
+
+  const useBtn = document.createElement('button');
+  useBtn.className = 'mini primary';
+  useBtn.textContent = '采用';
+  useBtn.addEventListener('click', () => {
+    const track = selectedTrack();
+    track.timbre = key;
+    track.name = cfg.label.replace('·采样', '');
+    renderTimeline();
+    renderMixer();
+    renderTrackList();
+    renderTimbrePage();
+    setStatus('「' + track.name + '」改用采样音色，首次播放会加载采样');
+  });
+
+  tools.append(previewBtn, useBtn);
+  card.append(head, credit, tools);
+  return card;
+}
+
+async function previewSampleTimbre(key) {
+  const Tone = await toneReady;
+  if (!Tone) { setStatus('Tone.js 未加载，无法试听'); return; }
+
+  const cfg = SAMPLE_TIMBRES[key];
+  if (!cfg) return;
+
+  setStatus('加载「' + cfg.label + '」…');
+  try {
+    const urls = await loadSampleTimbre(Tone, key);
+    await Tone.start();
+    const inst = new Tone.Sampler({ urls, release: cfg.release }).toDestination();
+    const now = Tone.now() + 0.08;
+    ['C4', 'E4', 'G4', 'C5'].forEach((note, i) => {
+      inst.triggerAttackRelease(note, 0.5, now + i * 0.16, 0.8);
+    });
+    setTimeout(() => { try { inst.dispose(); } catch (err) { /* 忽略 */ } }, 3200);
+    setStatus('正在试听「' + cfg.label + '」');
+  } catch (err) {
+    setStatus('试听失败：' + err.message);
   }
 }
 
@@ -4875,6 +4978,56 @@ if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) {
     });
   });
 }
+
+// ---- 手机横屏引导：竖屏时提示，点一下进全屏并锁定横屏 ----
+(function landscapeHelper() {
+  const banner = $('rotateHint');
+  const startBtn = $('btnRotate');
+  const skipBtn = $('btnRotateSkip');
+  if (!banner || !startBtn) return;
+
+  const portraitQuery = window.matchMedia
+    ? window.matchMedia('(orientation: portrait) and (max-width: 820px)')
+    : null;
+
+  // file:// 下访问 sessionStorage 会抛 SecurityError，必须兜住，否则整页白屏
+  function readSkip() {
+    try { return sessionStorage.getItem('hum2song.rotateSkip') === '1'; } catch (err) { return false; }
+  }
+
+  function refresh() {
+    const portrait = portraitQuery ? portraitQuery.matches : window.innerWidth < window.innerHeight;
+    banner.hidden = !portrait || readSkip();
+  }
+
+  async function enterLandscape() {
+    try {
+      const el = document.documentElement;
+      if (el.requestFullscreen) await el.requestFullscreen();
+      if (screen.orientation && screen.orientation.lock) {
+        await screen.orientation.lock('landscape');
+      }
+    } catch (err) {
+      setStatus('这个浏览器不让锁方向，把手机横过来即可');
+    }
+    refresh();
+  }
+
+  startBtn.addEventListener('click', () => { enterLandscape().catch(() => {}); });
+  if (skipBtn) {
+    skipBtn.addEventListener('click', () => {
+      try { sessionStorage.setItem('hum2song.rotateSkip', '1'); } catch (err) { /* file:// 下忽略 */ }
+      banner.hidden = true;
+    });
+  }
+
+  if (portraitQuery) {
+    if (portraitQuery.addEventListener) portraitQuery.addEventListener('change', refresh);
+    else if (portraitQuery.addListener) portraitQuery.addListener(refresh);
+  }
+  window.addEventListener('resize', refresh);
+  refresh();
+})();
 
 // ---- 动效：星空视差 + 按钮涟漪 ----
 (function motionExtras() {
