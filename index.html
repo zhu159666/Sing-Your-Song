@@ -30,6 +30,42 @@
   * { box-sizing: border-box; }
   /* hidden 属性要压过 button/div 的 display（否则没选区时按钮还是显示） */
   [hidden] { display: none !important; }
+
+  /* ---- 动效 ---- */
+  /* 星空随鼠标轻微偏移，做出纵深感 */
+  #sky { transform: translate3d(calc(var(--px, 0) * -7px), calc(var(--py, 0) * -7px), 0) scale(1.02);
+         transition: transform .5s cubic-bezier(.2,.8,.3,1); }
+
+  /* 按钮涟漪 */
+  button { position: relative; overflow: hidden; }
+  .ripple { position: absolute; border-radius: 50%; pointer-events: none;
+            background: radial-gradient(circle, rgba(255,255,255,.32), transparent 68%);
+            transform: scale(0); animation: ripple-out .58s ease-out forwards; }
+  @keyframes ripple-out { to { transform: scale(1); opacity: 0; } }
+
+  /* 音符悬停：提亮 + 浮起 */
+  .tl-block { transition: filter .14s var(--ease), box-shadow .14s var(--ease), transform .14s var(--ease); }
+  .tl-block:hover { filter: brightness(1.2); box-shadow: 0 0 0 1px rgba(255,255,255,.32),
+                    0 8px 18px -10px rgba(0,0,0,.9); transform: translateY(-1px); z-index: 3; }
+
+  /* 播放时：播放头带光晕，播放按钮一圈脉冲 */
+  body.is-playing .tl-playhead { box-shadow: 0 0 14px 2px rgba(126,166,255,.55); }
+  body.is-playing #btnPlay::after { content: ''; position: absolute; inset: -3px;
+    border-radius: inherit; border: 1px solid rgba(126,166,255,.55);
+    animation: play-pulse 1.6s ease-out infinite; pointer-events: none; }
+  @keyframes play-pulse { 0% { opacity: .85; transform: scale(1); } 100% { opacity: 0; transform: scale(1.14); } }
+
+  /* 混音条与和弦标签入场 */
+  .mix-strip { animation: strip-in .32s var(--ease) both; }
+  @keyframes strip-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .tl-chord { animation: chip-in .3s var(--ease) both; }
+  @keyframes chip-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    #sky { transform: none; transition: none; }
+    .tl-block, .mix-strip, .tl-chord { animation: none !important; transition: none; }
+    body.is-playing #btnPlay::after { animation: none; }
+  }
   body {
     margin: 0; color: var(--text); line-height: 1.6; -webkit-font-smoothing: antialiased;
     background: var(--bg);
@@ -709,8 +745,8 @@
         </ul>
       </section>
 
-      <p id="disclaimer" class="disclaimer">本工具基于开源合成器（MIT 协议）构建，不包含第三方采样版权。
-用户基于自身哼唱生成的音乐，版权归用户所有，可自由用于商业用途。</p>
+      <p id="disclaimer" class="disclaimer">本工具使用开源合成器（MIT 协议）与 1 组 CC-BY 3.0 钢琴采样（Salamander Grand Piano · Alexander Holm），
+其余音色全部实时合成、不含采样版权。用户基于自身哼唱生成的音乐，版权归用户所有，可自由用于商业用途。</p>
     </div>
 
   </div>
@@ -2306,6 +2342,7 @@ function drawTimeline() {
       chip.textContent = chord.label;
       chip.style.left = (chord.bar * perBar * TL.cellW) + 'px';
       chip.style.width = (perBar * TL.cellW) + 'px';
+      chip.style.animationDelay = (Math.min(chord.bar, 10) * 30) + 'ms';
       chordLane.appendChild(chip);
     }
 
@@ -2932,6 +2969,26 @@ function deriveBassLine(notes) {
 
 // 音色预设：全部是合成器参数，不含采样 → 正好避开第三方采样版权。
 // PolySynth 只接受继承自 Monophonic 的声部，所以只用 Synth / FMSynth / MonoSynth 三类。
+// 采样音色：key → 已解码的 ToneAudioBuffer（首次使用时才加载）
+const SAMPLE_TIMBRES = {
+  piano_sampled: {
+    label: '钢琴·采样',
+    kind: 'sampler',
+    baseUrl: 'samples/piano/',
+    release: 1.2,
+    credit: 'Salamander Grand Piano — Alexander Holm（CC-BY 3.0）',
+    urls: {
+      A1: 'A1.mp3', C2: 'C2.mp3', 'D#2': 'Ds2.mp3', 'F#2': 'Fs2.mp3', A2: 'A2.mp3',
+      C3: 'C3.mp3', 'D#3': 'Ds3.mp3', 'F#3': 'Fs3.mp3', A3: 'A3.mp3',
+      C4: 'C4.mp3', 'D#4': 'Ds4.mp3', 'F#4': 'Fs4.mp3', A4: 'A4.mp3',
+      C5: 'C5.mp3', 'D#5': 'Ds5.mp3', 'F#5': 'Fs5.mp3', A5: 'A5.mp3',
+      C6: 'C6.mp3', 'D#6': 'Ds6.mp3', 'F#6': 'Fs6.mp3', A6: 'A6.mp3', C7: 'C7.mp3',
+    },
+  },
+};
+
+const sampleBuffers = new Map();      // type → { note: ToneAudioBuffer }
+
 const TIMBRES = {
   piano: { label: '钢琴', voice: 'FMSynth', volume: -3, options: {
     harmonicity: 2.01, modulationIndex: 3.2,
@@ -2992,6 +3049,7 @@ function persistUserTimbres() {
 
 /** 统一取音色配置：内置优先，其次用户预设 */
 function timbreCfg(key) {
+  if (SAMPLE_TIMBRES[key]) return SAMPLE_TIMBRES[key];
   if (TIMBRES[key]) return TIMBRES[key];
   const found = userTimbres.find((t) => t.id === key);
   return found || TIMBRES.piano;
@@ -3091,8 +3149,48 @@ function createMasterChain(Tone) {
 // 复用在线实例会静默不出声。ensure* 只是给实时播放加一层缓存。
 // ---------------------------------------------------------------------------
 
+/** 加载一个采样音色的全部 mp3，解码成 ToneAudioBuffer 缓存起来 */
+async function loadSampleTimbre(Tone, type) {
+  const cfg = SAMPLE_TIMBRES[type];
+  if (!cfg) return null;
+  if (sampleBuffers.has(type)) return sampleBuffers.get(type);
+
+  const entries = await Promise.all(Object.entries(cfg.urls).map(async ([note, fileName]) => {
+    const buffer = new Tone.ToneAudioBuffer();
+    await buffer.load(cfg.baseUrl + fileName);
+    return [note, buffer];
+  }));
+
+  const map = Object.fromEntries(entries);
+  sampleBuffers.set(type, map);
+  return map;
+}
+
+/** 播放/导出前，把当前用到的采样音色都加载好 */
+async function ensureSampleTimbres(Tone) {
+  const used = new Set(tracks.map((t) => t.timbre).filter((type) => !!SAMPLE_TIMBRES[type]));
+  if (!used.size) return;
+
+  setStatus('加载采样音色（首次约 1.5MB）…');
+  for (const type of used) await loadSampleTimbre(Tone, type);
+  setStatus('采样已就绪');
+}
+
 function createMelodyInstrument(Tone, type, dest) {
   const cfg = timbreCfg(type);
+
+  // 采样音色：用已解码的 buffer 建 Sampler（不传 URL，避免离线上下文重新下载）
+  if (cfg.kind === 'sampler') {
+    const urls = sampleBuffers.get(type);
+    if (urls) {
+      try {
+        return new Tone.Sampler({ urls, release: cfg.release || 1.2 }).connect(dest || Tone.getDestination());
+      } catch (err) {
+        console.warn('采样音色构建失败，退回合成钢琴：', err);
+      }
+    }
+  }
+
   const VoiceCtor = Tone[cfg.voice] || Tone.Synth;
   let inst;
   try {
@@ -3382,6 +3480,7 @@ function renderMixer() {
     btns.append(muteBtn, soloBtn);
 
     strip.append(name, faderWrap, panRow, eqBox, revRow, btns);
+    strip.style.animationDelay = (root.childNodes.length * 40) + 'ms';
     root.appendChild(strip);
   }
 }
@@ -3404,6 +3503,7 @@ function stopPlayback() {
   activeParts.forEach((p) => { try { p.dispose(); } catch (e) { /* 忽略 */ } });
   activeParts = [];
   isPlaying = false;
+  document.body.classList.remove('is-playing');
   stopPlayheadLoop();
   stopMetronome();
   updatePlayButton();
@@ -3413,6 +3513,7 @@ async function startPlayback() {
   const Tone = await toneReady;
   if (!Tone) throw new Error('Tone.js 未加载，无法回放（提取结果仍然可用）');
 
+  await ensureSampleTimbres(Tone);
   stopPlayback();
   await Tone.start();                       // 必须在用户手势链上，否则 Safari 静音
 
@@ -3470,6 +3571,7 @@ async function startPlayback() {
   tr.seconds = playheadSec;
   tr.start();
   isPlaying = true;
+  document.body.classList.add('is-playing');
   startMetronome(Tone);
   startPlayheadLoop();
   updatePlayButton();
@@ -3554,6 +3656,7 @@ async function exportWav() {
     totalSeconds.toFixed(1) + ' 秒）');
 
   try {
+    await ensureSampleTimbres(Tone);
     const rendered = await Tone.Offline(async () => {
       const secondsPerBeat = 60 / arr.bpm;
       // 必须现场新建：离线上下文与实时上下文是两套
@@ -4123,6 +4226,7 @@ if (document.querySelectorAll) {
 function timbreOptions() {
   const list = [];
   for (const [key, cfg] of Object.entries(TIMBRES)) list.push({ key, label: cfg.label });
+  for (const [key, cfg] of Object.entries(SAMPLE_TIMBRES)) list.push({ key, label: cfg.label });
   for (const preset of userTimbres) list.push({ key: preset.id, label: '★ ' + preset.label });
   return list;
 }
@@ -4616,6 +4720,46 @@ if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) {
     });
   });
 }
+
+// ---- 动效：星空视差 + 按钮涟漪 ----
+(function motionExtras() {
+  if (REDUCE_MOTION) return;
+
+  // 星空随鼠标轻微移动（rAF 合并，避免每个事件都写样式）
+  let ticking = false;
+  let lastX = 0, lastY = 0;
+  document.addEventListener('pointermove', (event) => {
+    lastX = event.clientX;
+    lastY = event.clientY;
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      ticking = false;
+      const x = (lastX / window.innerWidth - 0.5) * 2;
+      const y = (lastY / window.innerHeight - 0.5) * 2;
+      document.body.style.setProperty('--px', x.toFixed(3));
+      document.body.style.setProperty('--py', y.toFixed(3));
+    });
+  }, { passive: true });
+
+  // 按钮点击涟漪
+  document.addEventListener('pointerdown', (event) => {
+    const target = event.target;
+    const btn = target && target.closest ? target.closest('button') : null;
+    if (!btn || btn.disabled) return;
+
+    const rect = btn.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height) * 2;
+    const ripple = document.createElement('span');
+    ripple.className = 'ripple';
+    ripple.style.width = size + 'px';
+    ripple.style.height = size + 'px';
+    ripple.style.left = (event.clientX - rect.left - size / 2) + 'px';
+    ripple.style.top = (event.clientY - rect.top - size / 2) + 'px';
+    btn.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 620);
+  }, { passive: true });
+})();
 
 // 环境自检：一眼看出为什么可能录不了音
 if (!window.isSecureContext) {
