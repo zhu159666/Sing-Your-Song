@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1260px; height: 1000px; overflow: hidden; }
+  body {
+    background: #070a0f;
+    font-family: "Segoe UI", -apple-system, system-ui, sans-serif;
+    color: #e8eef6; position: relative;
+  }
+
+  .glow {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(880px 440px at 82% -10%, rgba(126,166,255,.22), transparent 62%),
+      radial-gradient(620px 320px at 8% 106%, rgba(126,166,255,.10), transparent 70%);
+  }
+  .stars { position: absolute; inset: 0; opacity: .9; }
+
+  .frame { position: absolute; top: 0; left: 0; right: 0; padding: 58px 64px 0; }
+
+  .brand { display: flex; align-items: center; gap: 20px; }
+  .mark {
+    width: 70px; height: 70px; border-radius: 17px; flex: none;
+    background: #0d131c; border: 1px solid rgba(255,255,255,.10);
+    display: grid; place-items: center;
+  }
+  .mark svg { width: 42px; height: 42px; }
+
+  h1 {
+    font-size: 68px; line-height: .95; font-weight: 800; letter-spacing: -2.2px;
+    text-transform: uppercase;
+  }
+  h1 .accent { color: #7ea6ff; }
+
+  .tagline {
+    margin-top: 22px; font-size: 25px; line-height: 1.42; color: #9aa8bb; max-width: 760px;
+  }
+  .tagline b { color: #e8eef6; font-weight: 600; }
+
+  .chips { margin-top: 22px; display: flex; gap: 11px; flex-wrap: wrap; }
+  .chip {
+    font-size: 16px; padding: 7px 15px; border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.14); color: #b6c3d4; background: rgba(255,255,255,.03);
+  }
+
+  /* 界面条：占下半屏，底部渐隐 */
+  .shot {
+    position: absolute; left: 64px; right: 64px; top: 470px; height: 560px;
+    border-radius: 16px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,.15);
+    box-shadow: 0 40px 90px -40px rgba(0,0,0,1), 0 -18px 60px -30px rgba(126,166,255,.25);
+  }
+  .shot img { width: 100%; display: block; }
+  .veil {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 190px;
+    background: linear-gradient(to bottom, rgba(7,10,15,0), #070a0f 78%);
+  }
+</style>
+</head>
+<body>
+  <div class="glow"></div>
+  <canvas class="stars" id="stars" width="1260" height="1000"></canvas>
+
+  <div class="frame">
+    <div class="brand">
+      <div class="mark">
+        <svg viewBox="0 0 100 100" fill="none" stroke="#7ea6ff" stroke-width="7"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 50h10l8-26 12 52 10-34 8 18h18" />
+        </svg>
+      </div>
+      <h1>Sing Your<br /><span class="accent">Song</span></h1>
+    </div>
+
+    <div class="tagline">
+      Hum a melody. Get an arrangement you can <b>edit</b>, <b>mix</b> and <b>export</b>.
+    </div>
+
+    <div class="chips">
+      <span class="chip">Windows</span>
+      <span class="chip">WAV + MIDI</span>
+      <span class="chip">14 timbres</span>
+      <span class="chip">Runs offline</span>
+      <span class="chip">No account</span>
+    </div>
+  </div>
+
+  <div class="shot">
+    <img src="screenshots/01-main-1366x768.png" alt="" />
+    <div class="veil"></div>
+  </div>
+
+<script>
+  const c = document.getElementById('stars');
+  const ctx = c.getContext('2d');
+  for (let i = 0; i < 240; i++) {
+    const x = Math.random() * 1260;
+    const y = Math.random() * 1000;
+    const r = Math.random() * 1.5 + 0.3;
+    const a = Math.random() * 0.5 + 0.15;
+    ctx.beginPath();
+    ctx.fillStyle = 'rgba(200,220,255,' + a.toFixed(2) + ')';
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+</script>
+</body>
+</html>

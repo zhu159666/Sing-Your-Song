@@ -114,10 +114,10 @@ f113b3d157382c451fa6eaf3f0dcb56d4af7a6cd2085d9770089ac2ee4b9a548
 
 | 位置 | 用哪张 |
 | --- | --- |
-| Cover image | `store/icons/icon-1024.png`（itch 会裁成 630×500，建议另做一张横幅） |
+| Cover image | **`store/cover-630x500.png`**（630×500，已按 itch 规格做好） |
 | Screenshots | `store/screenshots/01-main-1366x768.png`、`02-timbres`、`03-staff`、`04-phone` |
 
-> itch 的 cover 建议 630×500。现在的正方形图标会被裁切，最好用界面截图 + 标题文字合成一张横幅——要我生成吗？
+> 封面是真实界面截图 + 品牌图形合成的，改文案后跑 `store/cover.html` 重新渲染即可。
 
 ---
 

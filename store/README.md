@@ -11,6 +11,9 @@ store/
 │   ├── icon-512.png   icon-512-maskable.png
 │   ├── icon-256.png   icon-128.png   icon-64.png
 │   └── icon-192.png   icon-192-maskable.png
+├── cover-630x500.png          itch.io 封面（630×500，itch 推荐尺寸）
+├── cover-1260x1000.png        2 倍图
+├── cover.html                 封面源文件（改文案后重新渲染）
 ├── screenshots/
 │   ├── 01-main-1366x768.png     微软商店：桌面截图
 │   ├── 02-timbres-1366x768.png
