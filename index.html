@@ -28,6 +28,8 @@
     --dur-1: 120ms; --dur-2: 200ms; --dur-3: 280ms;
   }
   * { box-sizing: border-box; }
+  /* hidden 属性要压过 button/div 的 display（否则没选区时按钮还是显示） */
+  [hidden] { display: none !important; }
   body {
     margin: 0; color: var(--text); line-height: 1.6; -webkit-font-smoothing: antialiased;
     background: var(--bg);
@@ -219,6 +221,10 @@
   .tl-grip:hover::after { background: var(--accent); }
   .tl-lane, .tl-ruler { flex: none; }
   body.is-selecting .tl-lane.is-open { cursor: crosshair; }
+  /* 选择模式下禁止页面跟着手指滚动，否则框选会被当成滚动手势 */
+  body.select-mode .tl-lane.is-open { touch-action: none; cursor: crosshair; }
+  .mix-btns button.on, button.mini.on { background: rgba(126,166,255,.22);
+                                        border-color: var(--accent); color: #fff; }
   .tl-corner { height: 22px; font-size: 10px; color: var(--muted); display: flex;
                align-items: center; padding-left: 10px; border-bottom: 1px solid var(--line); }
   .tl-ruler { position: relative; height: 22px; border-bottom: 1px solid var(--line);
@@ -372,6 +378,8 @@
     /* 混音：每条通道窄一点，横向滑动 */
     .mixer { gap: 6px; }
     .mix-strip { width: 104px; padding: 6px; }
+    /* 手机上把「选择」提到工具条最前面，否则要滑很久才找到 */
+    #btnSelect { order: -1; }
     .mix-fader input { height: 72px; }
 
     /* 面板标题堆叠 */
@@ -543,6 +551,7 @@
               <span class="sub" id="zoomLabel">100%</span>
               <button id="btnZoomIn" class="mini ghost" title="放大网格">＋</button>
             </span>
+            <button id="btnSelect" class="mini ghost" title="开启后拖拽 = 框选一段旋律（触屏用）">选择</button>
             <button id="btnChords" class="mini ghost" title="按小节推断和弦，并让低音跟着和弦走">生成和弦</button>
             <button id="btnKey" class="mini ghost" title="从当前轨的音符推断调性">检测调性</button>
             <button id="btnSnap" class="mini ghost" disabled title="把跑调的音吸附到检测出的音阶上">吸附到调</button>
@@ -557,6 +566,9 @@
         <div id="velRow" class="vel-row" hidden>
           <label>力度 <input type="range" id="velocity" min="5" max="100" step="1" value="60" /></label>
           <span class="sub" id="velInfo"></span>
+          <button id="btnDelSel" class="mini ghost">删除选区</button>
+          <button id="btnTransDown" class="mini ghost" title="整体降一个八度">−12</button>
+          <button id="btnTransUp" class="mini ghost" title="整体升一个八度">+12</button>
         </div>
       </section>
 
@@ -650,8 +662,8 @@
           <li><b>和弦</b>：点「生成和弦」，按小节推断三和弦并在时间轴上方显示；勾着「低音」时，低音会改成跟和弦根音走。</li>
           <li><b>装成 App</b>：用 http(s) 打开时，浏览器地址栏会出现"安装"图标；
               装好后从桌面/开始菜单启动，断网也能用（应用外壳已缓存，Tone.js 自带）。</li>
-          <li><b>手机上</b>：左侧栏会变成顶部横条，工具条可以左右滑动；时间轴的框选需要按住 Shift，
-              触屏上没有 Shift 键，建议在电脑上做精细编辑。</li>
+          <li><b>手机上</b>：左侧栏会变成顶部横条，工具条可以左右滑动。想框选就点工具条里的「选择」，
+              然后用手指在格子上拖出选框——选框出现后，下方会有「删除选区」「±12 移调」和力度滑杆。</li>
         </ul>
       </section>
 
@@ -1392,6 +1404,7 @@ let undoStack = [];
 let redoStack = [];
 let saveTimer = 0;
 let suppressClickUntil = 0;   // 拖动结束后短暂忽略 click，避免误删
+let selectMode = false;       // 触屏友好：开启后拖拽 = 框选，点格子不再加音符
 let playheadSec = 0;          // 播放头位置（秒）
 let playheadRAF = 0;
 let clickLoop = null;
@@ -2371,7 +2384,8 @@ function drawTimeline() {
 
     // Shift + 拖动 = 框选一段旋律（松开后按 Ctrl+C 复制）
     lane.addEventListener('pointerdown', (event) => {
-      if (!event.shiftKey || event.button !== 0) return;
+      // 桌面按 Shift，触屏用「选择」开关
+      if ((!event.shiftKey && !selectMode) || event.button !== 0) return;
       event.preventDefault();
 
       const rect = lane.getBoundingClientRect();
@@ -2581,8 +2595,14 @@ function applySelection(track, colFrom, colTo, lo, hi) {
 function refreshVelocityRow() {
   const row = $('velRow');
   if (!row) return;
-  if (!selection || !selection.notes.length) { row.hidden = true; return; }
+  const acts = ['btnDelSel', 'btnTransDown', 'btnTransUp'];
+  if (!selection || !selection.notes.length) {
+    row.hidden = true;
+    acts.forEach((id) => { const b = $(id); if (b) b.hidden = true; });
+    return;
+  }
   row.hidden = false;
+  acts.forEach((id) => { const b = $(id); if (b) b.hidden = false; });
 
   const avg = selection.notes.reduce((sum, n) => sum + (n.amp == null ? 0.6 : n.amp), 0) / selection.notes.length;
   const slider = $('velocity');
@@ -3857,8 +3877,8 @@ $('timeline').addEventListener('click', (event) => {
   // 轨头里的音色下拉：让原生控件自己处理，别当成"选中轨道"把 DOM 重建掉
   if (event.target && event.target.tagName === 'SELECT') return;
 
-  // Shift 是框选，别把它当成"加音符"
-  if (event.shiftKey) return;
+  // Shift 或「选择」模式下，点击不该加音符
+  if (event.shiftKey || selectMode) return;
 
   const find = (sel) => (event.target.closest ? event.target.closest(sel) : null);
 
@@ -3920,6 +3940,50 @@ $('projectInput').addEventListener('change', (event) => {
 $('btnCopy').addEventListener('click', copySelection);
 $('btnMidi').addEventListener('click', exportMidi);
 $('btnShare').addEventListener('click', shareLink);
+
+$('btnSelect').addEventListener('click', () => {
+  selectMode = !selectMode;
+  const btn = $('btnSelect');
+  if (btn) btn.classList.toggle('on', selectMode);
+  document.body.classList.toggle('select-mode', selectMode);
+  setStatus(selectMode
+    ? '选择模式：在格子上拖动即可框选（再点一次关闭）'
+    : '已退出选择模式');
+});
+
+$('btnDelSel').addEventListener('click', () => {
+  if (!selection || !selection.notes.length) return;
+  const prev = snapshot();
+  const track = tracks.find((t) => t.id === selection.trackId) || selectedTrack();
+  const drop = new Set(selection.notes);
+  track.notes = track.notes.filter((note) => !drop.has(note));
+  const count = drop.size;
+  selection = null;
+  if (track.id === selectedId) currentNotes = track.notes;
+  renderTimeline();
+  renderJson();
+  updatePlayButton();
+  commit(prev);
+  setStatus('删掉了选中的 ' + count + ' 个音符');
+});
+
+function transposeSelection(semitones) {
+  if (!selection || !selection.notes.length) return;
+  const prev = snapshot();
+  for (const note of selection.notes) {
+    note.midi = Math.max(0, Math.min(127, Math.round(note.midi) + semitones));
+  }
+  const track = tracks.find((t) => t.id === selection.trackId);
+  if (track) { track.notes.sort((a, b) => a.start - b.start); ensureView(track); }
+  renderTimeline();
+  renderJson();
+  updatePlayButton();
+  commit(prev);
+  setStatus('选区移调 ' + (semitones > 0 ? '+' : '') + semitones + ' 半音');
+}
+
+$('btnTransUp').addEventListener('click', () => transposeSelection(12));
+$('btnTransDown').addEventListener('click', () => transposeSelection(-12));
 $('btnZoomIn').addEventListener('click', () => setZoom(zoomLevel + 0.25));
 $('btnZoomOut').addEventListener('click', () => setZoom(zoomLevel - 0.25));
 $('btnChords').addEventListener('click', () => {
