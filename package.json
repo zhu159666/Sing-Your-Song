@@ -1,0 +1,34 @@
+{
+  "name": "hum2song",
+  "version": "0.1.0",
+  "description": "哼唱 → 编曲工作台（单页网页 + Electron 桌面壳）",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "smoke": "electron . --smoke",
+    "dist": "electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "33.4.11",
+    "electron-builder": "25.1.8"
+  },
+  "build": {
+    "appId": "com.local.hum2song",
+    "productName": "Hum2Song",
+    "files": [
+      "index.html",
+      "main.js",
+      "preload.js",
+      "server.js",
+      "vendor/**"
+    ],
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "signAndEditExecutable": false
+    },
+    "asar": true
+  }
+}

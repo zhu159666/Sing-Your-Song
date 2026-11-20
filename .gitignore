@@ -1,0 +1,7 @@
+node_modules/
+dist/
+backups/
+_ep*/
+*.log
+_desk.png
+_p1.html
