@@ -348,6 +348,7 @@
   .tl-timbre-btn:hover { border-color: var(--line-strong); }
   .tl-timbre-btn::after { content: '▾'; float: right; color: var(--muted); }
   .tl-timbre-menu { position: fixed; z-index: 300; min-width: 170px; max-height: 320px;
+    overscroll-behavior: contain;
     overflow-y: auto; padding: 4px; border-radius: 8px;
     background: #121821; border: 1px solid var(--line-strong);
     box-shadow: 0 24px 48px -24px rgba(0,0,0,.95); }
@@ -1567,7 +1568,7 @@ let suppressClickUntil = 0;   // 拖动结束后短暂忽略 click，避免误�
 let selectMode = false;       // 触屏友好：开启后拖拽 = 框选，点格子不再加音符
 let hitTargets = [];          // [{ start, el }]，播放头扫过时用来弹一下
 let notationMode = 'roll';    // roll | staff | jianpu
-const APP_VERSION = '2026.11.20.38';   // 每次发布改这里，页面底部能看到
+const APP_VERSION = '2026.11.20.39';   // 每次发布改这里，页面底部能看到
 let lastPlayheadSec = 0;
 let playheadSec = 0;          // 播放头位置（秒）
 let playheadRAF = 0;
@@ -4649,9 +4650,18 @@ function makeTimbreSelect(track) {
 
   if (!makeTimbreSelect.__bound) {
     makeTimbreSelect.__bound = true;
-    document.addEventListener('click', closeTimbreMenus);
+    document.addEventListener('click', (event) => {
+      const target = event.target;
+      if (target && target.closest && target.closest('.tl-timbre-menu')) return;
+      closeTimbreMenus();
+    });
     window.addEventListener('resize', closeTimbreMenus);
-    document.addEventListener('scroll', closeTimbreMenus, true);
+    // 只在外层容器滚动时关闭；菜单自己内部滚动要放过，否则滚轮一动就没了
+    document.addEventListener('scroll', (event) => {
+      const target = event.target;
+      if (target && target.closest && target.closest('.tl-timbre-menu')) return;
+      closeTimbreMenus();
+    }, true);
   }
 
   return wrap;
