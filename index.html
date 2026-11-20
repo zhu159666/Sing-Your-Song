@@ -299,6 +299,12 @@
     width: 1px; height: 24px; background: rgba(231,237,243,.85); }
   .tl-block.jianpu { display: flex; align-items: center; justify-content: center;
     font-size: 11px; font-weight: 600; color: #0b0e13; }
+  .tl-coach { display: none; position: absolute; left: 12px; top: 2px; z-index: 5;
+    padding: 2px 8px; font-size: 11px; border-radius: 999px; pointer-events: none;
+    color: #0b0e13; background: #9dc0ff; white-space: nowrap; }
+  .tl-coach.is-on { display: block; animation: coach-pulse 2.4s ease-in-out infinite; }
+  @keyframes coach-pulse { 0%, 100% { opacity: .85; } 50% { opacity: 1; } }
+
   .staff-line { position: absolute; left: 0; right: 0; height: 1px;
     background: rgba(255,255,255,.3); pointer-events: none; }
 
@@ -320,6 +326,7 @@
   .tl-corner { height: 22px; font-size: 10px; color: var(--muted); display: flex;
                align-items: center; padding-left: 10px; border-bottom: 1px solid var(--line); }
   .tl-ruler { position: relative; height: 22px; border-bottom: 1px solid var(--line);
+              cursor: ew-resize;
               background-image: repeating-linear-gradient(90deg,
                 rgba(255,255,255,.05) 0 1px, transparent 1px 28px); }
   .tl-tick { position: absolute; top: 0; height: 100%; padding-left: 4px; font-size: 10px;
@@ -332,6 +339,23 @@
   .track-timbre { width: 100%; font-size: 10px; padding: 1px 4px; border-radius: 6px;
                   background: transparent; border: 1px solid transparent; color: var(--text); }
   .tl-head:hover { background: rgba(255,255,255,.035); }
+
+  /* 自绘音色下拉：深色面板，不弹系统白框 */
+  .tl-timbre { position: relative; flex: 1; min-width: 0; }
+  .tl-timbre-btn { width: 100%; text-align: left; cursor: pointer;
+    padding: 4px 8px; font-size: 12px; color: var(--text);
+    background: rgba(255,255,255,.05); border: 1px solid var(--line); border-radius: 6px; }
+  .tl-timbre-btn:hover { border-color: var(--line-strong); }
+  .tl-timbre-btn::after { content: '▾'; float: right; color: var(--muted); }
+  .tl-timbre-menu { position: fixed; z-index: 300; min-width: 170px; max-height: 320px;
+    overflow-y: auto; padding: 4px; border-radius: 8px;
+    background: #121821; border: 1px solid var(--line-strong);
+    box-shadow: 0 24px 48px -24px rgba(0,0,0,.95); }
+  .tl-timbre-item { display: block; width: 100%; text-align: left; cursor: pointer;
+    padding: 6px 9px; font-size: 12px; color: var(--text);
+    background: none; border: 0; border-radius: 5px; }
+  .tl-timbre-item:hover { background: rgba(126,166,255,.16); }
+  .tl-timbre-item.is-on { color: #9dc0ff; }
   .tl-head.is-active { background: hsl(var(--th, 212), 45%, 17%);
                        box-shadow: inset 3px 0 0 hsl(var(--th, 212), 72%, 60%); }
   .tl-head.is-open { display: block; padding: 0; }
@@ -2398,7 +2422,8 @@ function drawTimeline() {
 
   const corner = document.createElement('div');
   corner.className = 'tl-corner';
-  corner.textContent = '轨道 / 小节';
+  corner.textContent = '拖动刻度尺定位';
+  corner.title = '按住刻度尺左右拖动，可以连续移动播放头';
   corner.appendChild(makeGrip());
   rulerRow.appendChild(corner);
 
@@ -2412,22 +2437,29 @@ function drawTimeline() {
     tick.textContent = bar + 1;
     ruler.appendChild(tick);
   }
-  // 左键点击定位，右键按住拖动连续拖动播放头（触屏长按也可以）
+  // 左键：点一下定位；按住拖动 = 连续拖动播放头（不需要右键）
   const seekFrom = (event) => {
     const rect = ruler.getBoundingClientRect();
     const col = Math.max(0, Math.floor((event.clientX - rect.left) / TL.cellW));
     seekTo(col * gridStep());
   };
 
-  ruler.addEventListener('click', seekFrom);
+  // 首次拖动引导：气泡出现在刻度尺上，拖过一次就不再显示
+  const coach = document.createElement('div');
+  coach.className = 'tl-coach';
+  coach.textContent = '在这里按住拖动，可移动播放头';
+  ruler.appendChild(coach);
+  let coachShown = false;
+  try { coachShown = localStorage.getItem('hum2song.coachSeek') === '1'; } catch (err) { /* 忽略 */ }
+  if (!coachShown) coach.classList.add('is-on');
 
-  ruler.addEventListener('contextmenu', (event) => event.preventDefault());
   ruler.addEventListener('pointerdown', (event) => {
-    if (event.button !== 2 && event.button !== 0) return;
-    if (event.button === 0 && !event.shiftKey) return;   // 左键保持点击定位
+    if (event.button !== 0) return;
+    coach.classList.remove('is-on');
+    try { localStorage.setItem('hum2song.coachSeek', '1'); } catch (err) { /* 忽略 */ }
     event.preventDefault();
-    seekFrom(event);
     ruler.setPointerCapture(event.pointerId);
+    seekFrom(event);
 
     const move = (moveEvent) => seekFrom(moveEvent);
     const up = () => {
@@ -4521,32 +4553,83 @@ function timbreOptions() {
 }
 
 /** 每条轨道自己的音色下拉（挂在轨头上，不再有全局音色） */
+function closeTimbreMenus() {
+  document.querySelectorAll('.tl-timbre-menu').forEach((menu) => {
+    menu.hidden = true;
+    menu.remove();
+  });
+}
+
+function applyTimbreTo(track, key) {
+  track.timbre = key;
+  const cfg = timbreCfg(key);
+  track.name = cfg.label || key;                // 轨名跟着音色走
+  setStatus('轨道改名为「' + track.name + '」，音色同步切换。');
+  closeTimbreMenus();
+  renderTimeline();
+  renderJson();
+  if (isPlaying) { startPlayback().catch(() => {}); }
+}
+
+/** 自绘下拉：系统 select 的白底弹窗在深色界面里会"闪白"，所以自己画 */
 function makeTimbreSelect(track) {
-  const select = document.createElement('select');
-  select.className = 'track-timbre';
-  select.title = '「' + track.name + '」的音色';
+  const wrap = document.createElement('div');
+  wrap.className = 'tl-timbre';
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'tl-timbre-btn';
+  button.title = '「' + track.name + '」的音色';
+  button.textContent = timbreCfg(track.timbre).label || track.timbre;
+
+  const menu = document.createElement('div');
+  menu.className = 'tl-timbre-menu';
+  menu.hidden = true;
 
   for (const opt of timbreOptions()) {
-    const o = document.createElement('option');
-    o.value = opt.key;
-    o.textContent = opt.label;
-    select.appendChild(o);
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'tl-timbre-item' + (opt.key === track.timbre ? ' is-on' : '');
+    item.textContent = opt.label;
+    item.addEventListener('click', (event) => {
+      event.stopPropagation();
+      applyTimbreTo(track, opt.key);
+    });
+    menu.appendChild(item);
   }
-  select.value = track.timbre;
 
-  select.addEventListener('change', (event) => {
+  button.addEventListener('click', (event) => {
     event.stopPropagation();
-    track.timbre = select.value;
-    const cfg = timbreCfg(track.timbre);
-    track.name = cfg.label || track.timbre;     // 轨名跟着音色走
-    setStatus('轨道改名为「' + track.name + '」，音色同步切换。');
-    renderTimeline();
-    renderJson();
-    if (isPlaying) { startPlayback().catch(() => {}); }
+    const wasOpen = !menu.hidden && document.body.contains(menu);
+    closeTimbreMenus();
+    if (wasOpen) return;
+
+    // 挂到 body 上：时间轴是滚动容器，留在里面会被裁掉
+    document.body.appendChild(menu);
+    document.querySelectorAll('.tl-timbre-menu').forEach((other) => {
+      if (other !== menu) other.remove();
+    });
+
+    menu.hidden = false;
+    const rect = button.getBoundingClientRect();
+    menu.style.left = Math.max(8, rect.left) + 'px';
+    menu.style.top = (rect.bottom + 4) + 'px';
+    menu.style.minWidth = Math.max(170, rect.width) + 'px';
   });
 
-  return select;
+  wrap.append(button);
+
+  if (!makeTimbreSelect.__bound) {
+    makeTimbreSelect.__bound = true;
+    document.addEventListener('click', closeTimbreMenus);
+    window.addEventListener('resize', closeTimbreMenus);
+    document.addEventListener('scroll', closeTimbreMenus, true);
+  }
+
+  return wrap;
 }
+
+
 
 function makeTimbreCard(key, cfg, isUser) {
   const card = document.createElement('div');
