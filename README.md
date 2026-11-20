@@ -1,5 +1,10 @@
 # 麦克风 → 音高提取 → 合成发声（单页原型）
 
+**在线地址：https://zhu159666.github.io/Sing-Your-Song/** · 仓库：[zhu159666/Sing-Your-Song](https://github.com/zhu159666/Sing-Your-Song)
+
+> 用这个网址打开就能录、能编、能导出；手机浏览器还可以"添加到主屏幕"当 App 用。
+> 更新网站：双击 `update-site.cmd`，它会同步文件并推送，30 秒后刷新即可。
+
 一个 `index.html`，两个按钮，一个 `<pre>`。**录制 → Basic Pitch 提取音符 → Tone.Synth 回放**。
 
 ## 怎么跑
